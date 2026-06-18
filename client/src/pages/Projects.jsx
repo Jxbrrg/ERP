@@ -19,17 +19,17 @@ export default function Projects() {
   const [customers, setCustomers] = useState([]);
 
   const load = () =>
-    fetch('http://localhost:5000/api/projects', { credentials: 'include' })
+    fetch(__API_URL__ + '/api/projects', { credentials: 'include' })
       .then(r => r.json()).then(setProjects);
 
   useEffect(() => {
     load();
-    fetch('http://localhost:5000/api/crm', { credentials: 'include' })
+    fetch(__API_URL__ + '/api/crm', { credentials: 'include' })
       .then(r => r.json()).then(setCustomers);
   }, []);
 
   const handleSave = async (form) => {
-    const url = editProj ? `http://localhost:5000/api/projects/${editProj.id}` : 'http://localhost:5000/api/projects';
+    const url = editProj ? `${__API_URL__}/api/projects/${editProj.id}` : __API_URL__ + '/api/projects';
     const method = editProj ? 'PUT' : 'POST';
     await fetch(url, { method, credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
     load();
@@ -158,18 +158,18 @@ function ProjectDetail({ project, onClose }) {
   const [newTask, setNewTask] = useState({ name: '', assigned_to: '', priority: 'medium', due_date: '' });
 
   const loadDetail = () =>
-    fetch(`http://localhost:5000/api/projects/${project.id}`, { credentials: 'include' })
+    fetch(`${__API_URL__}/api/projects/${project.id}`, { credentials: 'include' })
       .then(r => r.json()).then(setDetail);
 
   useEffect(() => {
     loadDetail();
-    fetch('http://localhost:5000/api/employees', { credentials: 'include' })
+    fetch(__API_URL__ + '/api/employees', { credentials: 'include' })
       .then(r => r.json()).then(setEmployees);
   }, [project.id]);
 
   const addTask = async () => {
     if (!newTask.name) return;
-    await fetch(`http://localhost:5000/api/projects/${project.id}/tasks`, {
+    await fetch(`${__API_URL__}/api/projects/${project.id}/tasks`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newTask)
@@ -179,7 +179,7 @@ function ProjectDetail({ project, onClose }) {
   };
 
   const updateTask = async (id, status) => {
-    await fetch(`http://localhost:5000/api/projects/tasks/${id}`, {
+    await fetch(`${__API_URL__}/api/projects/tasks/${id}`, {
       method: 'PUT', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status })

@@ -10,17 +10,17 @@ export default function Employees() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/employees', { credentials: 'include' })
+    fetch(__API_URL__ + '/api/employees', { credentials: 'include' })
       .then(r => r.json()).then(d => { setEmployees(d); setLoading(false); });
   }, []);
 
   const handleSave = async (form) => {
     const url = editEmp
-      ? `http://localhost:5000/api/employees/${editEmp.id}`
-      : 'http://localhost:5000/api/employees';
+      ? `${__API_URL__}/api/employees/${editEmp.id}`
+      : __API_URL__ + '/api/employees';
     const method = editEmp ? 'PUT' : 'POST';
     await fetch(url, { method, credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
-    const res = await fetch('http://localhost:5000/api/employees', { credentials: 'include' });
+    const res = await fetch(__API_URL__ + '/api/employees', { credentials: 'include' });
     setEmployees(await res.json());
     setShowModal(false);
     setEditEmp(null);
@@ -28,7 +28,7 @@ export default function Employees() {
 
   const handleDelete = async (id) => {
     if (!confirm('¿Eliminar empleado?')) return;
-    await fetch(`http://localhost:5000/api/employees/${id}`, { method: 'DELETE', credentials: 'include' });
+    await fetch(`${__API_URL__}/api/employees/${id}`, { method: 'DELETE', credentials: 'include' });
     setEmployees(employees.filter(e => e.id !== id));
   };
 

@@ -12,24 +12,24 @@ export default function Sales() {
   const [products, setProducts] = useState([]);
 
   const loadOrders = () =>
-    fetch('http://localhost:5000/api/sales', { credentials: 'include' })
+    fetch(__API_URL__ + '/api/sales', { credentials: 'include' })
       .then(r => r.json()).then(setOrders);
 
   useEffect(() => {
     loadOrders();
-    fetch('http://localhost:5000/api/employees', { credentials: 'include' }).then(r => r.json()).then(setEmployees);
-    fetch('http://localhost:5000/api/crm', { credentials: 'include' }).then(r => r.json()).then(setCustomers);
-    fetch('http://localhost:5000/api/inventory', { credentials: 'include' }).then(r => r.json()).then(setProducts);
+    fetch(__API_URL__ + '/api/employees', { credentials: 'include' }).then(r => r.json()).then(setEmployees);
+    fetch(__API_URL__ + '/api/crm', { credentials: 'include' }).then(r => r.json()).then(setCustomers);
+    fetch(__API_URL__ + '/api/inventory', { credentials: 'include' }).then(r => r.json()).then(setProducts);
   }, []);
 
   const handleSave = async (form) => {
-    await fetch('http://localhost:5000/api/sales', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+    await fetch(__API_URL__ + '/api/sales', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
     await loadOrders();
     setShowModal(false);
   };
 
   const updateStatus = async (id, status) => {
-    await fetch(`http://localhost:5000/api/sales/${id}`, { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
+    await fetch(`${__API_URL__}/api/sales/${id}`, { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
     await loadOrders();
   };
 
@@ -189,7 +189,7 @@ function OrderDetail({ orderId, onClose }) {
   const [order, setOrder] = useState(null);
 
   useEffect(() => {
-    fetch(`http://localhost:5000/api/sales/${orderId}`, { credentials: 'include' })
+    fetch(`${__API_URL__}/api/sales/${orderId}`, { credentials: 'include' })
       .then(r => r.json()).then(setOrder);
   }, [orderId]);
 

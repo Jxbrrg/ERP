@@ -17,7 +17,7 @@ const useAuthStore = create((set) => ({
 
   checkAuth: async () => {
     try {
-      const res = await fetch('http://localhost:5000/auth/me', { credentials: 'include' });
+      const res = await fetch(__API_URL__ + '/auth/me', { credentials: 'include' });
       if (res.ok) {
         const user = await res.json();
         set({ user, loading: false });
@@ -30,7 +30,7 @@ const useAuthStore = create((set) => ({
   },
 
   login: async (email) => {
-    const res = await fetch('http://localhost:5000/auth/demo', {
+    const res = await fetch(__API_URL__ + '/auth/demo', {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -43,7 +43,7 @@ const useAuthStore = create((set) => ({
   },
 
   logout: async () => {
-    await fetch('http://localhost:5000/auth/logout', { method: 'POST', credentials: 'include' });
+    await fetch(__API_URL__ + '/auth/logout', { method: 'POST', credentials: 'include' });
     set({ user: null });
   }
 }));

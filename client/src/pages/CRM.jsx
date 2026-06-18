@@ -10,13 +10,13 @@ export default function CRM() {
   const [selectedCust, setSelectedCust] = useState(null);
 
   const load = () =>
-    fetch('http://localhost:5000/api/crm', { credentials: 'include' })
+    fetch(__API_URL__ + '/api/crm', { credentials: 'include' })
       .then(r => r.json()).then(setCustomers);
 
   useEffect(() => { load(); }, []);
 
   const handleSave = async (form) => {
-    const url = editCust ? `http://localhost:5000/api/crm/${editCust.id}` : 'http://localhost:5000/api/crm';
+    const url = editCust ? `${__API_URL__}/api/crm/${editCust.id}` : __API_URL__ + '/api/crm';
     const method = editCust ? 'PUT' : 'POST';
     await fetch(url, { method, credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
     load();
@@ -26,7 +26,7 @@ export default function CRM() {
 
   const handleDelete = async (id) => {
     if (!confirm('¿Eliminar cliente?')) return;
-    await fetch(`http://localhost:5000/api/crm/${id}`, { method: 'DELETE', credentials: 'include' });
+    await fetch(`${__API_URL__}/api/crm/${id}`, { method: 'DELETE', credentials: 'include' });
     setCustomers(customers.filter(c => c.id !== id));
   };
 
@@ -127,7 +127,7 @@ function CustomerDetail({ customer, onClose }) {
   const [detail, setDetail] = useState(null);
 
   useEffect(() => {
-    fetch(`http://localhost:5000/api/crm/${customer.id}`, { credentials: 'include' })
+    fetch(`${__API_URL__}/api/crm/${customer.id}`, { credentials: 'include' })
       .then(r => r.json()).then(setDetail);
   }, [customer.id]);
 

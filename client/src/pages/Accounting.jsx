@@ -12,16 +12,16 @@ export default function Accounting() {
   const [showModal, setShowModal] = useState(false);
 
   const load = () => {
-    fetch('http://localhost:5000/api/accounting', { credentials: 'include' })
+    fetch(__API_URL__ + '/api/accounting', { credentials: 'include' })
       .then(r => r.json()).then(setTxns);
-    fetch('http://localhost:5000/api/accounting/summary', { credentials: 'include' })
+    fetch(__API_URL__ + '/api/accounting/summary', { credentials: 'include' })
       .then(r => r.json()).then(setSummary);
   };
 
   useEffect(load, []);
 
   const handleSave = async (form) => {
-    await fetch('http://localhost:5000/api/accounting', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+    await fetch(__API_URL__ + '/api/accounting', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
     load();
     setShowModal(false);
   };
