@@ -16,7 +16,7 @@ router.get('/summary', ah(async (req, res) => {
   const income = await db.get("SELECT COALESCE(SUM(amount),0) as total FROM transactions WHERE type = 'income'");
   const expense = await db.get("SELECT COALESCE(SUM(amount),0) as total FROM transactions WHERE type = 'expense'");
   const byMonth = await db.all(`
-    SELECT TO_CHAR(date, 'YYYY-MM') as month,
+    SELECT strftime('%Y-%m', date) as month,
       SUM(CASE WHEN type='income' THEN amount ELSE 0 END) as income,
       SUM(CASE WHEN type='expense' THEN amount ELSE 0 END) as expense
     FROM transactions GROUP BY month ORDER BY month DESC LIMIT 12
@@ -34,7 +34,7 @@ router.post('/', ah(async (req, res) => {
   const id = uuidv4();
   const result = await db.get('SELECT COUNT(*) as c FROM transactions');
   const code = `TXN-${String((result.c || 0) + 1).padStart(4, '0')}`;
-  await db.run('INSERT INTO transactions (id,code,type,category,description,amount,payment_method,reference,date,created_by) VALUES (?,?,?,?,?,?,?,?,?,?)',
+  await db.run('INSERT OR IGNORE INTO transactions (id,code,type,category,description,amount,payment_method,reference,date,created_by) VALUES (?,?,?,?,?,?,?,?,?,?)',
     id, code, type, category, description, amount, payment_method || 'cash', reference || `REF-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, date, req.user.id);
   const txn = await db.get('SELECT * FROM transactions WHERE id = ?', id);
   res.status(201).json(txn);

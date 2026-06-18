@@ -1,5 +1,4 @@
 const passport = require('passport');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const { v4: uuidv4 } = require('uuid');
 const db = require('./db');
 
@@ -14,6 +13,8 @@ passport.deserializeUser(async (id, done) => {
   }
 });
 
+if (process.env.GOOGLE_CLIENT_ID) {
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -46,5 +47,6 @@ passport.use(new GoogleStrategy({
     done(err, null);
   }
 }));
+}
 
 module.exports = passport;

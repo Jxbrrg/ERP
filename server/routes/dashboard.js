@@ -13,9 +13,9 @@ router.get('/', ah(async (req, res) => {
   const lowStock = await db.get('SELECT COUNT(*) as count FROM products WHERE stock <= min_stock');
 
   const monthlySales = await db.all(`
-    SELECT EXTRACT(MONTH FROM created_at) as month, SUM(total) as total
+    SELECT strftime('%m', created_at) as month, SUM(total) as total
     FROM orders WHERE status != 'cancelled'
-    AND created_at >= CURRENT_DATE - INTERVAL '12 months'
+    AND created_at >= date('now', '-12 months')
     GROUP BY month ORDER BY month
   `);
 
@@ -36,8 +36,8 @@ router.get('/', ah(async (req, res) => {
   const pendingTasks = await db.get("SELECT COUNT(*) as count FROM tasks WHERE status NOT IN ('completed','review')");
 
   const salesByDay = await db.all(`
-    SELECT created_at::date as day, COUNT(*) as count, SUM(total) as total
-    FROM orders WHERE status != 'cancelled' AND created_at >= CURRENT_DATE - INTERVAL '30 days'
+    SELECT date(created_at) as day, COUNT(*) as count, SUM(total) as total
+    FROM orders WHERE status != 'cancelled' AND created_at >= date('now', '-30 days')
     GROUP BY day ORDER BY day
   `);
 

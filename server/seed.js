@@ -49,7 +49,7 @@ async function main() {
     { id: uuidv4(), google_id: 'demo_user', email: 'user@nexus.com', name: 'Usuario Demo', avatar: null, role: 'user' },
   ];
   for (const u of users) {
-    await db.run(`INSERT INTO users (id, google_id, email, name, avatar, role) VALUES (?,?,?,?,?,?) ON CONFLICT (email) DO NOTHING`,
+    await db.run(`INSERT OR IGNORE INTO users (id, google_id, email, name, avatar, role) VALUES (?,?,?,?,?,?)`,
       u.id, u.google_id, u.email, u.name, u.avatar, u.role);
   }
   console.log(`Users: ${users.length}`);
@@ -58,7 +58,7 @@ async function main() {
   for (const [i, n] of nombres.entries()) {
     const id = uuidv4();
     const code = `EMP-${String(i + 1).padStart(3, '0')}`;
-    await db.run(`INSERT INTO employees (id,code,name,email,phone,position,department,salary,hire_date,status,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT (email) DO NOTHING`,
+    await db.run(`INSERT OR IGNORE INTO employees (id,code,name,email,phone,position,department,salary,hire_date,status,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?) `,
       id, code, n, `${n.toLowerCase().replace(' ','.')}@nexus.com`,
       `300${rand(1000000, 9999999)}`, pick(cargos), pick(departamentos),
       rand(2000000, 15000000), daysAgo(rand(30, 730)), pick(['active','active','active','active','active','inactive','vacation']),
@@ -74,7 +74,7 @@ async function main() {
       const hOut = 17 + rand(0, 2);
       const mOut = rand(0, 59);
       const est = Math.random() > 0.15 ? 'present' : (Math.random() > 0.5 ? 'late' : 'absent');
-      await db.run(`INSERT INTO attendance (id,employee_id,date,check_in,check_out,status) VALUES (?,?,?,?,?,?) ON CONFLICT (employee_id, date) DO NOTHING`,
+      await db.run(`INSERT OR IGNORE INTO attendance (id,employee_id,date,check_in,check_out,status) VALUES (?,?,?,?,?,?) `,
         uuidv4(), eid, daysAgo(i),
         est === 'absent' ? null : `${String(hIn).padStart(2,'0')}:${String(mIn).padStart(2,'0')}`,
         est === 'absent' ? null : `${String(hOut).padStart(2,'0')}:${String(mOut).padStart(2,'0')}`,
@@ -86,7 +86,7 @@ async function main() {
   const catIds = [];
   for (const c of cats) {
     const id = uuidv4();
-    await db.run(`INSERT INTO categories (id, name, description) VALUES (?,?,?) ON CONFLICT (name) DO NOTHING`, id, c, `Categoría de ${c}`);
+    await db.run(`INSERT OR IGNORE INTO categories (id, name, description) VALUES (?,?,?) `, id, c, `Categoría de ${c}`);
     catIds.push(id);
   }
   console.log(`Categories: ${cats.length}`);
@@ -95,7 +95,7 @@ async function main() {
   for (const [i, p] of prods.entries()) {
     const id = uuidv4();
     const code = `PROD-${String(i + 1).padStart(3, '0')}`;
-    await db.run(`INSERT INTO products (id,code,name,description,category_id,unit_price,cost_price,stock,min_stock,location,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT (code) DO NOTHING`,
+    await db.run(`INSERT OR IGNORE INTO products (id,code,name,description,category_id,unit_price,cost_price,stock,min_stock,location,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?) `,
       id, code, p[0], p[1], pick(catIds), p[2], p[3], p[4] + rand(-10, 20),
       rand(5, 20), `Bodega-${String.fromCharCode(65 + rand(0,4))}-${rand(1,20)}`, users[0].id);
     prodIds.push(id);
@@ -105,7 +105,7 @@ async function main() {
   const custIds = [];
   for (const [i, c] of clientNames.entries()) {
     const id = uuidv4();
-    await db.run(`INSERT INTO customers (id,code,name,email,phone,address,type,credit_limit,created_by) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT (code) DO NOTHING`,
+    await db.run(`INSERT OR IGNORE INTO customers (id,code,name,email,phone,address,type,credit_limit,created_by) VALUES (?,?,?,?,?,?,?,?,?) `,
       id, `CLI-${String(i + 1).padStart(3, '0')}`, c,
       `contacto@${c.toLowerCase().replace(/[^a-z]/g,'')}.com`,
       `3${rand(1000000,9999999)}`, `Calle ${rand(1,100)} #${rand(1,20)}-${rand(1,99)}, ${pick(ciudades)}`,
@@ -114,7 +114,7 @@ async function main() {
   }
   for (let i = 0; i < 15; i++) {
     const id = uuidv4();
-    await db.run(`INSERT INTO customers (id,code,name,email,phone,address,type,credit_limit,created_by) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT (code) DO NOTHING`,
+    await db.run(`INSERT OR IGNORE INTO customers (id,code,name,email,phone,address,type,credit_limit,created_by) VALUES (?,?,?,?,?,?,?,?,?) `,
       id, `CLI-${String(clientNames.length + i + 1).padStart(3, '0')}`,
       `${pick(['Comercial','Distribuidora','Inversiones','Grupo','Corporación'])} ${pick(['Andina','del Sur','del Valle','Nacional','Unida','Global','Prime'])}`,
       `cliente${i}@email.com`, `3${rand(1000000,9999999)}`,
@@ -137,13 +137,13 @@ async function main() {
       total += subtotal;
       items.push({ id: uuidv4(), product_id: prodIds[rand(0, prodIds.length - 1)], quantity: qty, unit_price: p[2], subtotal });
     }
-    await db.run(`INSERT INTO orders (id,code,customer_id,employee_id,total,status,payment_method,notes,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT (code) DO NOTHING`,
+    await db.run(`INSERT OR IGNORE INTO orders (id,code,customer_id,employee_id,total,status,payment_method,notes,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?) `,
       oid, `ORD-${String(i + 1).padStart(4, '0')}`, pick(custIds), pick(employeeIds), total,
       pick(['pending','pending','confirmed','shipped','delivered','delivered','delivered','cancelled']),
       pick(['cash','card','transfer','credit']), 'Orden generada automáticamente',
       users[0].id, daysAgo(rand(0, 60)));
     for (const it of items) {
-      await db.run(`INSERT INTO order_items (id,order_id,product_id,quantity,unit_price,subtotal) VALUES (?,?,?,?,?,?)`, it.id, oid, it.product_id, it.quantity, it.unit_price, it.subtotal);
+      await db.run(`INSERT OR IGNORE INTO order_items (id,order_id,product_id,quantity,unit_price,subtotal) VALUES (?,?,?,?,?,?)`, it.id, oid, it.product_id, it.quantity, it.unit_price, it.subtotal);
     }
     ordCount++;
   }
@@ -154,7 +154,7 @@ async function main() {
   for (let i = 0; i < 80; i++) {
     const isIncome = Math.random() > 0.4;
     const cat = pick(txCats);
-    await db.run(`INSERT INTO transactions (id,code,type,category,description,amount,payment_method,reference,date,created_by) VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT (code) DO NOTHING`,
+    await db.run(`INSERT OR IGNORE INTO transactions (id,code,type,category,description,amount,payment_method,reference,date,created_by) VALUES (?,?,?,?,?,?,?,?,?,?) `,
       uuidv4(), `TXN-${String(i + 1).padStart(4, '0')}`,
       isIncome ? 'income' : 'expense', cat, `${isIncome ? 'Ingreso por' : 'Pago de'} ${cat}`,
       isIncome ? rand(500000, 25000000) : rand(100000, 8000000),
@@ -167,7 +167,7 @@ async function main() {
   const subjects = ['Seguimiento cotización','Llamada de bienvenida','Revisión contrato','Propuesta comercial','Soporte técnico',
     'Actualización de datos','Oferta especial','Renovación servicio','Queja','Solicitud información'];
   for (let i = 0; i < 40; i++) {
-    await db.run(`INSERT INTO interactions (id,customer_id,type,subject,description,status,assigned_to,due_date,created_by) VALUES (?,?,?,?,?,?,?,?,?)`,
+    await db.run(`INSERT OR IGNORE INTO interactions (id,customer_id,type,subject,description,status,assigned_to,due_date,created_by) VALUES (?,?,?,?,?,?,?,?,?)`,
       uuidv4(), pick(custIds), pick(['call','email','meeting','note','task']),
       pick(subjects), 'Interacción registrada para seguimiento comercial',
       pick(['completed','completed','completed','pending','scheduled']),
@@ -180,7 +180,7 @@ async function main() {
   const projIds = [];
   for (const [i, n] of projectNames.entries()) {
     const id = uuidv4();
-    await db.run(`INSERT INTO projects (id,code,name,description,customer_id,start_date,end_date,budget,status,priority,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT (code) DO NOTHING`,
+    await db.run(`INSERT OR IGNORE INTO projects (id,code,name,description,customer_id,start_date,end_date,budget,status,priority,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?) `,
       id, `PROJ-${String(i + 1).padStart(3, '0')}`, n, `Proyecto: ${n} - Transformación digital integral`,
       pick(custIds), daysAgo(rand(0, 90)), daysAgo(rand(-180, -10)),
       rand(10000000, 200000000),
@@ -196,7 +196,7 @@ async function main() {
   for (const pid of projIds) {
     const numTasks = rand(3, 8);
     for (let i = 0; i < numTasks; i++) {
-      await db.run(`INSERT INTO tasks (id,project_id,name,description,assigned_to,status,priority,due_date,estimated_hours,actual_hours,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+      await db.run(`INSERT OR IGNORE INTO tasks (id,project_id,name,description,assigned_to,status,priority,due_date,estimated_hours,actual_hours,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
         uuidv4(), pid, pick(taskNames), 'Tarea del proyecto asignada al equipo',
         pick(employeeIds),
         pick(['pending','in_progress','in_progress','review','completed','completed']),
@@ -216,7 +216,7 @@ async function main() {
   ];
   for (const u of users) {
     for (const n of notifs) {
-      await db.run(`INSERT INTO notifications (id,user_id,title,message,type) VALUES (?,?,?,?,?)`,
+      await db.run(`INSERT OR IGNORE INTO notifications (id,user_id,title,message,type) VALUES (?,?,?,?,?)`,
         uuidv4(), u.id, n[0], n[1], n[2]);
     }
   }

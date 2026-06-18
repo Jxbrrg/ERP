@@ -23,6 +23,7 @@ app.use(passport.session());
 
 const ah = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
+if (process.env.GOOGLE_CLIENT_ID) {
 app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
 app.get('/auth/google/callback',
@@ -31,6 +32,7 @@ app.get('/auth/google/callback',
     res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/dashboard`);
   }
 );
+}
 
 app.get('/auth/me', (req, res) => {
   if (req.user) return res.json(req.user);
