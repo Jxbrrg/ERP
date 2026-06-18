@@ -1,31 +1,34 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const session = require('express-session');
+const cookieSession = require('cookie-session');
 const passport = require('./auth');
 const db = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const isVercel = !!process.env.VERCEL;
 
 app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', credentials: true }));
 app.use(express.json());
-app.use(session({
+app.use(cookieSession({
+  name: 'nexus-session',
   secret: process.env.SESSION_SECRET || 'nexus-secret',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 }
+  maxAge: 24 * 60 * 60 * 1000,
+  sameSite: 'lax',
+  secure: isVercel,
 }));
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Auth routes
+const ah = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+
 app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
 app.get('/auth/google/callback',
-  passport.authenticate('google', { failureRedirect: `${process.env.CLIENT_URL}/login?error=true` }),
+  passport.authenticate('google', { failureRedirect: `${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=true` }),
   (req, res) => {
-    res.redirect(`${process.env.CLIENT_URL}/dashboard`);
+    res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/dashboard`);
   }
 );
 
@@ -37,22 +40,21 @@ app.get('/auth/me', (req, res) => {
 app.post('/auth/logout', (req, res) => {
   req.logout(err => {
     if (err) return res.status(500).json({ error: 'Error al cerrar sesión' });
+    req.session = null;
     res.json({ success: true });
   });
 });
 
-// Demo login (when Google OAuth is not configured)
-app.post('/auth/demo', (req, res) => {
+app.post('/auth/demo', ah(async (req, res) => {
   const { email } = req.body;
-  const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
-  if (!user) return res.status(401).json({ error: 'Usuario no encontrado. Usa: admin@nexus.com, manager@nexus.com, user@nexus.com' });
+  const user = await db.get('SELECT * FROM users WHERE email = ?', email);
+  if (!user) return res.status(401).json({ error: 'No encontrado. Usa: admin@nexus.com, manager@nexus.com, user@nexus.com' });
   req.login(user, err => {
     if (err) return res.status(500).json({ error: 'Error al iniciar sesión' });
     res.json(user);
   });
-});
+}));
 
-// API Routes
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/employees', require('./routes/employees'));
 app.use('/api/inventory', require('./routes/inventory'));
@@ -61,24 +63,28 @@ app.use('/api/accounting', require('./routes/accounting'));
 app.use('/api/crm', require('./routes/crm'));
 app.use('/api/projects', require('./routes/projects'));
 
-// Notifications
-app.get('/api/notifications', (req, res) => {
+app.get('/api/notifications', ah(async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'No autenticado' });
-  const notifs = db.prepare('SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 20').all(req.user.id);
+  const notifs = await db.all('SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 20', req.user.id);
   res.json(notifs);
-});
+}));
 
-app.post('/api/notifications/:id/read', (req, res) => {
+app.post('/api/notifications/:id/read', ah(async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'No autenticado' });
-  db.prepare('UPDATE notifications SET read = 1 WHERE id = ? AND user_id = ?').run(req.params.id, req.user.id);
+  await db.run('UPDATE notifications SET read = 1 WHERE id = ? AND user_id = ?', req.params.id, req.user.id);
   res.json({ success: true });
-});
+}));
 
-app.listen(PORT, () => {
-  console.log(`
-╔══════════════════════════════════════════════╗
-║           NEXUS ERP - SERVER                ║
-║   🚀 Servidor iniciado en puerto ${PORT}     ║
-╚══════════════════════════════════════════════╝
-  `);
-});
+// Initialize DB tables on first start
+if (!isVercel) {
+  db.init().then(() => {
+    app.listen(PORT, () => {
+      console.log(`NEXUS ERP Server running on port ${PORT}`);
+    });
+  }).catch(err => {
+    console.error('DB init failed:', err);
+    process.exit(1);
+  });
+}
+
+module.exports = app;
