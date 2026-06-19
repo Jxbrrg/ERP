@@ -42,7 +42,7 @@ export default function Login() {
           className="hidden flex-1 lg:block"
         >
           <div className="flex items-center gap-4 mb-6">
-            <img src="/SynexERP.png" alt="SynexERP" className="h-14 w-14 rounded-2xl" />
+            <img src="/SynexERP.png" alt="SynexERP" className="h-20 w-20 rounded-2xl" />
             <div>
               <h1 className="text-4xl font-bold text-white">SynexERP</h1>
               <p className="text-sm text-indigo-300/80">Enterprise Resource Planning</p>
@@ -85,7 +85,7 @@ export default function Login() {
         >
           <div className="glass rounded-3xl p-8 shadow-2xl dark:bg-slate-900/80">
             <div className="mb-8 text-center">
-              <img src="/SynexERP.png" alt="SynexERP" className="mx-auto mb-4 h-16 w-16 rounded-2xl" />
+              <img src="/SynexERP.png" alt="SynexERP" className="mx-auto mb-4 h-24 w-24 rounded-2xl" />
               <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Iniciar Sesión</h2>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 Accede a tu panel de control empresarial

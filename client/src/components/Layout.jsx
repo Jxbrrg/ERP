@@ -26,7 +26,7 @@ function SidebarView({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
   const sidebarContent = (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-3 px-4 py-5">
-        <img src="/SynexERP.png" alt="SynexERP" className="h-11 w-11 rounded-xl" />
+        <img src="/SynexERP.png" alt="SynexERP" className="h-14 w-14 rounded-xl" />
         {!collapsed && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col">
             <span className="text-lg font-bold tracking-tight">SynexERP</span>
