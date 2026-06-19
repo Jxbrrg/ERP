@@ -10,15 +10,15 @@ let dbPath;
 const getDbPath = () => {
   if (dbPath) return dbPath;
   if (process.env.VERCEL) {
-    dbPath = path.join(os.tmpdir(), 'nexus.db');
+    dbPath = path.join(os.tmpdir(), 'synex.db');
   } else {
-    dbPath = path.join(__dirname, 'nexus.db');
+    dbPath = path.join(__dirname, 'synex.db');
   }
   return dbPath;
 };
 
-const seedData = () => {
-  const dbUsers = db.prepare('SELECT id FROM users').all();
+const seedData = (companyId) => {
+  const dbUsers = db.prepare('SELECT id FROM users WHERE company_id = ?').all(companyId);
   if (dbUsers.length === 0) return;
   const createdBy = dbUsers[0].id;
   const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
@@ -56,11 +56,11 @@ const seedData = () => {
   const ciudades = ['Bogotá','Medellín','Cali','Barranquilla','Cartagena','Pereira','Bucaramanga'];
 
   const employeeIds = [];
-  const insertEmp = db.prepare('INSERT OR IGNORE INTO employees (id,code,name,email,phone,position,department,salary,hire_date,status,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
+  const insertEmp = db.prepare('INSERT OR IGNORE INTO employees (id,company_id,code,name,email,phone,position,department,salary,hire_date,status,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)');
   nombres.forEach((n, i) => {
     const id = uuidv4();
     employeeIds.push(id);
-    insertEmp.run(id, `EMP-${String(i + 1).padStart(3, '0')}`, n, `${n.toLowerCase().replace(' ','.')}@synexerp.com`,
+    insertEmp.run(id, companyId, `EMP-${String(i + 1).padStart(3, '0')}`, n, `${n.toLowerCase().replace(' ','.')}@synex.com`,
       `300${rand(1000000, 9999999)}`, pick(cargos), pick(departamentos),
       rand(2000000, 15000000), daysAgo(rand(30, 730)), pick(['active','active','active','active','active','inactive','vacation']), createdBy);
   });
@@ -80,31 +80,31 @@ const seedData = () => {
   }
 
   const catIds = [];
-  const insertCat = db.prepare('INSERT OR IGNORE INTO categories (id, name, description) VALUES (?,?,?)');
-  cats.forEach(c => { const id = uuidv4(); insertCat.run(id, c, `Categoría de ${c}`); catIds.push(id); });
+  const insertCat = db.prepare('INSERT OR IGNORE INTO categories (id, company_id, name, description) VALUES (?,?,?,?)');
+  cats.forEach(c => { const id = uuidv4(); insertCat.run(id, companyId, c, `Categoría de ${c}`); catIds.push(id); });
 
   const prodIds = [];
-  const insertProd = db.prepare('INSERT OR IGNORE INTO products (id,code,name,description,category_id,unit_price,cost_price,stock,min_stock,location,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
+  const insertProd = db.prepare('INSERT OR IGNORE INTO products (id,company_id,code,name,description,category_id,unit_price,cost_price,stock,min_stock,location,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)');
   prods.forEach((p, i) => {
     const id = uuidv4();
     prodIds.push(id);
-    insertProd.run(id, `PROD-${String(i + 1).padStart(3, '0')}`, p[0], p[1], pick(catIds), p[2], p[3], p[4] + rand(-10, 20), rand(5, 20), `Bodega-${String.fromCharCode(65 + rand(0,4))}-${rand(1,20)}`, createdBy);
+    insertProd.run(id, companyId, `PROD-${String(i + 1).padStart(3, '0')}`, p[0], p[1], pick(catIds), p[2], p[3], p[4] + rand(-10, 20), rand(5, 20), `Bodega-${String.fromCharCode(65 + rand(0,4))}-${rand(1,20)}`, createdBy);
   });
 
   const custIds = [];
-  const insertCust = db.prepare('INSERT OR IGNORE INTO customers (id,code,name,email,phone,address,type,credit_limit,created_by) VALUES (?,?,?,?,?,?,?,?,?)');
+  const insertCust = db.prepare('INSERT OR IGNORE INTO customers (id,company_id,code,name,email,phone,address,type,credit_limit,created_by) VALUES (?,?,?,?,?,?,?,?,?,?)');
   clientNames.forEach((c, i) => {
     const id = uuidv4();
     custIds.push(id);
-    insertCust.run(id, `CLI-${String(i + 1).padStart(3, '0')}`, c, `contacto@${c.toLowerCase().replace(/[^a-z]/g,'')}.com`, `3${rand(1000000,9999999)}`, `Calle ${rand(1,100)} #${rand(1,20)}-${rand(1,99)}, ${pick(ciudades)}`, pick(['regular','regular','vip','corporate']), rand(5000000, 50000000), createdBy);
+    insertCust.run(id, companyId, `CLI-${String(i + 1).padStart(3, '0')}`, c, `contacto@${c.toLowerCase().replace(/[^a-z]/g,'')}.com`, `3${rand(1000000,9999999)}`, `Calle ${rand(1,100)} #${rand(1,20)}-${rand(1,99)}, ${pick(ciudades)}`, pick(['regular','regular','vip','corporate']), rand(5000000, 50000000), createdBy);
   });
   for (let i = 0; i < 15; i++) {
     const id = uuidv4();
     custIds.push(id);
-    insertCust.run(id, `CLI-${String(clientNames.length + i + 1).padStart(3, '0')}`, `${pick(['Comercial','Distribuidora','Inversiones','Grupo','Corporación'])} ${pick(['Andina','del Sur','del Valle','Nacional','Unida','Global','Prime'])}`, `cliente${i}@email.com`, `3${rand(1000000,9999999)}`, `Cra ${rand(1,50)} #${rand(1,30)}-${rand(1,99)}, ${pick(ciudades)}`, pick(['regular','regular','regular','vip','corporate']), rand(0, 30000000), createdBy);
+    insertCust.run(id, companyId, `CLI-${String(clientNames.length + i + 1).padStart(3, '0')}`, `${pick(['Comercial','Distribuidora','Inversiones','Grupo','Corporación'])} ${pick(['Andina','del Sur','del Valle','Nacional','Unida','Global','Prime'])}`, `cliente${i}@email.com`, `3${rand(1000000,9999999)}`, `Cra ${rand(1,50)} #${rand(1,30)}-${rand(1,99)}, ${pick(ciudades)}`, pick(['regular','regular','regular','vip','corporate']), rand(0, 30000000), createdBy);
   }
 
-  const insertOrder = db.prepare('INSERT OR IGNORE INTO orders (id,code,customer_id,employee_id,total,status,payment_method,notes,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)');
+  const insertOrder = db.prepare('INSERT OR IGNORE INTO orders (id,company_id,code,customer_id,employee_id,total,status,payment_method,notes,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
   const insertItem = db.prepare('INSERT OR IGNORE INTO order_items (id,order_id,product_id,quantity,unit_price,subtotal) VALUES (?,?,?,?,?,?)');
   for (let i = 0; i < 50; i++) {
     const oid = uuidv4();
@@ -117,45 +117,45 @@ const seedData = () => {
       total += p[2] * qty;
       items.push({ id: uuidv4(), product_id: prodIds[rand(0, prodIds.length - 1)], quantity: qty, unit_price: p[2], subtotal: p[2] * qty });
     }
-    insertOrder.run(oid, `ORD-${String(i + 1).padStart(4, '0')}`, pick(custIds), pick(employeeIds), total, pick(['pending','pending','confirmed','shipped','delivered','delivered','delivered','cancelled']), pick(['cash','card','transfer','credit']), 'Orden generada', createdBy, daysAgo(rand(0, 60)));
+    insertOrder.run(oid, companyId, `ORD-${String(i + 1).padStart(4, '0')}`, pick(custIds), pick(employeeIds), total, pick(['pending','pending','confirmed','shipped','delivered','delivered','delivered','cancelled']), pick(['cash','card','transfer','credit']), 'Orden generada', createdBy, daysAgo(rand(0, 60)));
     items.forEach(it => insertItem.run(it.id, oid, it.product_id, it.quantity, it.unit_price, it.subtotal));
   }
 
-  const insertTx = db.prepare('INSERT OR IGNORE INTO transactions (id,code,type,category,description,amount,payment_method,reference,date,created_by) VALUES (?,?,?,?,?,?,?,?,?,?)');
+  const insertTx = db.prepare('INSERT OR IGNORE INTO transactions (id,company_id,code,type,category,description,amount,payment_method,reference,date,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
   const txCats = ['Ventas','Servicios','Nómina','Proveedores','Servicios Públicos','Arriendo','Equipos','Marketing','Transporte','Seguros','Impuestos','Consultoría'];
   for (let i = 0; i < 80; i++) {
     const isIncome = Math.random() > 0.4;
     const cat = pick(txCats);
-    insertTx.run(uuidv4(), `TXN-${String(i + 1).padStart(4, '0')}`, isIncome ? 'income' : 'expense', cat, `${isIncome ? 'Ingreso por' : 'Pago de'} ${cat}`, isIncome ? rand(500000, 25000000) : rand(100000, 8000000), pick(['cash','card','transfer','transfer','transfer']), `REF-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, daysAgo(rand(0, 90)), createdBy);
+    insertTx.run(uuidv4(), companyId, `TXN-${String(i + 1).padStart(4, '0')}`, isIncome ? 'income' : 'expense', cat, `${isIncome ? 'Ingreso por' : 'Pago de'} ${cat}`, isIncome ? rand(500000, 25000000) : rand(100000, 8000000), pick(['cash','card','transfer','transfer','transfer']), `REF-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, daysAgo(rand(0, 90)), createdBy);
   }
 
-  const insertInt = db.prepare('INSERT OR IGNORE INTO interactions (id,customer_id,type,subject,description,status,assigned_to,due_date,created_by) VALUES (?,?,?,?,?,?,?,?,?)');
+  const insertInt = db.prepare('INSERT OR IGNORE INTO interactions (id,company_id,customer_id,type,subject,description,status,assigned_to,due_date,created_by) VALUES (?,?,?,?,?,?,?,?,?,?)');
   const subjects = ['Seguimiento cotización','Llamada de bienvenida','Revisión contrato','Propuesta comercial','Soporte técnico','Actualización de datos','Oferta especial','Renovación servicio','Queja','Solicitud información'];
-  for (let i = 0; i < 40; i++) insertInt.run(uuidv4(), pick(custIds), pick(['call','email','meeting','note','task']), pick(subjects), 'Interacción registrada', pick(['completed','completed','completed','pending','scheduled']), pick(employeeIds), daysAgo(rand(-5, 30)), createdBy);
+  for (let i = 0; i < 40; i++) insertInt.run(uuidv4(), companyId, pick(custIds), pick(['call','email','meeting','note','task']), pick(subjects), 'Interacción registrada', pick(['completed','completed','completed','pending','scheduled']), pick(employeeIds), daysAgo(rand(-5, 30)), createdBy);
 
   const projectNames = ['Implementación ERP','Migración Cloud','App Móvil Corporativa','Rediseño Web','Auditoría Seguridad','Campaña Marketing Digital','Optimización Procesos','Data Warehouse','E-commerce Platform','CRM Personalizado'];
   const projIds = [];
-  const insertProj = db.prepare('INSERT OR IGNORE INTO projects (id,code,name,description,customer_id,start_date,end_date,budget,status,priority,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
+  const insertProj = db.prepare('INSERT OR IGNORE INTO projects (id,company_id,code,name,description,customer_id,start_date,end_date,budget,status,priority,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)');
   projectNames.forEach((n, i) => {
     const id = uuidv4();
     projIds.push(id);
-    insertProj.run(id, `PROJ-${String(i + 1).padStart(3, '0')}`, n, `Proyecto: ${n}`, pick(custIds), daysAgo(rand(0, 90)), daysAgo(rand(-180, -10)), rand(10000000, 200000000), pick(['active','active','active','planning','completed','completed']), pick(['low','medium','medium','high','high','critical']), createdBy);
+    insertProj.run(id, companyId, `PROJ-${String(i + 1).padStart(3, '0')}`, n, `Proyecto: ${n}`, pick(custIds), daysAgo(rand(0, 90)), daysAgo(rand(-180, -10)), rand(10000000, 200000000), pick(['active','active','active','planning','completed','completed']), pick(['low','medium','medium','high','high','critical']), createdBy);
   });
 
-  const insertTask = db.prepare('INSERT OR IGNORE INTO tasks (id,project_id,name,description,assigned_to,status,priority,due_date,estimated_hours,actual_hours,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
+  const insertTask = db.prepare('INSERT OR IGNORE INTO tasks (id,company_id,project_id,name,description,assigned_to,status,priority,due_date,estimated_hours,actual_hours,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)');
   const taskNames = ['Análisis de requisitos','Diseño de solución','Desarrollo backend','Desarrollo frontend','Pruebas QA','Documentación','Despliegue','Capacitación','Revisión de código','Integración APIs','Optimización rendimiento','Seguridad','Testing usuario','Migración datos','Monitoreo'];
-  projIds.forEach(pid => { const numTasks = rand(3, 8); for (let i = 0; i < numTasks; i++) insertTask.run(uuidv4(), pid, pick(taskNames), 'Tarea del proyecto', pick(employeeIds), pick(['pending','in_progress','in_progress','review','completed','completed']), pick(['low','medium','medium','high','high']), daysAgo(rand(-30, 30)), rand(4, 80), rand(2, 60), createdBy); });
+  projIds.forEach(pid => { const numTasks = rand(3, 8); for (let i = 0; i < numTasks; i++) insertTask.run(uuidv4(), companyId, pid, pick(taskNames), 'Tarea del proyecto', pick(employeeIds), pick(['pending','in_progress','in_progress','review','completed','completed']), pick(['low','medium','medium','high','high']), daysAgo(rand(-30, 30)), rand(4, 80), rand(2, 60), createdBy); });
 
-  const insertNotif = db.prepare('INSERT OR IGNORE INTO notifications (id,user_id,title,message,type) VALUES (?,?,?,?,?)');
+  const insertNotif = db.prepare('INSERT OR IGNORE INTO notifications (id,company_id,user_id,title,message,type) VALUES (?,?,?,?,?,?)');
   const notifs = [
-    ['Bienvenido a NEXUS ERP', 'Has iniciado sesión correctamente', 'success'],
+    ['Bienvenido a Synex', 'Has iniciado sesión correctamente', 'success'],
     ['Reporte semanal disponible', 'Los reportes ya están generados', 'info'],
     ['Stock bajo', 'Algunos productos tienen inventario crítico', 'warning'],
     ['Tarea completada', 'La tarea fue finalizada', 'success'],
     ['Recordatorio de nómina', 'La nómina del mes debe ser procesada', 'info'],
     ['Meta del mes', 'Las ventas han alcanzado el 85% de la meta mensual', 'info'],
   ];
-  dbUsers.forEach(u => { notifs.forEach(n => insertNotif.run(uuidv4(), u.id, n[0], n[1], n[2])); });
+  dbUsers.forEach(u => { notifs.forEach(n => insertNotif.run(uuidv4(), companyId, u.id, n[0], n[1], n[2])); });
 };
 
 const initDb = () => {
@@ -163,32 +163,67 @@ const initDb = () => {
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
   db.exec(`
-    CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, google_id TEXT UNIQUE, email TEXT UNIQUE NOT NULL, name TEXT NOT NULL, avatar TEXT, role TEXT DEFAULT 'user' CHECK(role IN ('ceo','admin','manager','user')), created_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_login DATETIME);
-    CREATE TABLE IF NOT EXISTS employees (id TEXT PRIMARY KEY, code TEXT UNIQUE NOT NULL, name TEXT NOT NULL, email TEXT UNIQUE NOT NULL, phone TEXT, position TEXT NOT NULL, department TEXT NOT NULL, salary REAL NOT NULL, hire_date TEXT NOT NULL, status TEXT DEFAULT 'active' CHECK(status IN ('active','inactive','vacation')), created_by TEXT REFERENCES users(id), created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
+    CREATE TABLE IF NOT EXISTS companies (
+      id TEXT PRIMARY KEY, name TEXT NOT NULL, slug TEXT UNIQUE NOT NULL,
+    email_domain TEXT, plan TEXT DEFAULT 'free',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, owner_id TEXT,
+    logo_url TEXT, primary_color TEXT DEFAULT '#6366f1', secondary_color TEXT DEFAULT '#06b6d4', api_key TEXT,
+    plan_expires_at TEXT
+    );
+    CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), google_id TEXT, email TEXT NOT NULL, name TEXT NOT NULL, avatar TEXT, password_hash TEXT, role TEXT DEFAULT 'user' CHECK(role IN ('superadmin','admin','manager','user')), created_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_login DATETIME, UNIQUE(company_id, email));
+    CREATE TABLE IF NOT EXISTS employees (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), code TEXT NOT NULL, name TEXT NOT NULL, email TEXT NOT NULL, phone TEXT, position TEXT NOT NULL, department TEXT NOT NULL, salary REAL NOT NULL, hire_date TEXT NOT NULL, status TEXT DEFAULT 'active' CHECK(status IN ('active','inactive','vacation')), created_by TEXT REFERENCES users(id), created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(company_id, code), UNIQUE(company_id, email));
     CREATE TABLE IF NOT EXISTS attendance (id TEXT PRIMARY KEY, employee_id TEXT REFERENCES employees(id) ON DELETE CASCADE, date TEXT NOT NULL, check_in TEXT, check_out TEXT, status TEXT DEFAULT 'present' CHECK(status IN ('present','absent','late','vacation','holiday')), UNIQUE(employee_id, date));
-    CREATE TABLE IF NOT EXISTS categories (id TEXT PRIMARY KEY, name TEXT UNIQUE NOT NULL, description TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
-    CREATE TABLE IF NOT EXISTS products (id TEXT PRIMARY KEY, code TEXT UNIQUE NOT NULL, name TEXT NOT NULL, description TEXT, category_id TEXT REFERENCES categories(id), unit_price REAL NOT NULL, cost_price REAL NOT NULL, stock INTEGER NOT NULL DEFAULT 0, min_stock INTEGER DEFAULT 10, location TEXT, image TEXT, created_by TEXT REFERENCES users(id), created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
-    CREATE TABLE IF NOT EXISTS customers (id TEXT PRIMARY KEY, code TEXT UNIQUE NOT NULL, name TEXT NOT NULL, email TEXT, phone TEXT, address TEXT, type TEXT DEFAULT 'regular' CHECK(type IN ('regular','vip','corporate')), credit_limit REAL DEFAULT 0, notes TEXT, created_by TEXT REFERENCES users(id), created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
-    CREATE TABLE IF NOT EXISTS orders (id TEXT PRIMARY KEY, code TEXT UNIQUE NOT NULL, customer_id TEXT REFERENCES customers(id), employee_id TEXT REFERENCES employees(id), total REAL NOT NULL, status TEXT DEFAULT 'pending' CHECK(status IN ('pending','confirmed','shipped','delivered','cancelled')), payment_method TEXT DEFAULT 'cash' CHECK(payment_method IN ('cash','card','transfer','credit')), notes TEXT, created_by TEXT REFERENCES users(id), created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
+    CREATE TABLE IF NOT EXISTS categories (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), name TEXT NOT NULL, description TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(company_id, name));
+    CREATE TABLE IF NOT EXISTS products (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), code TEXT NOT NULL, name TEXT NOT NULL, description TEXT, category_id TEXT REFERENCES categories(id), unit_price REAL NOT NULL, cost_price REAL NOT NULL, stock INTEGER NOT NULL DEFAULT 0, min_stock INTEGER DEFAULT 10, location TEXT, image TEXT, created_by TEXT REFERENCES users(id), created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(company_id, code));
+    CREATE TABLE IF NOT EXISTS customers (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), code TEXT NOT NULL, name TEXT NOT NULL, email TEXT, phone TEXT, address TEXT, type TEXT DEFAULT 'regular' CHECK(type IN ('regular','vip','corporate')), credit_limit REAL DEFAULT 0, notes TEXT, created_by TEXT REFERENCES users(id), created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(company_id, code));
+    CREATE TABLE IF NOT EXISTS orders (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), code TEXT NOT NULL, customer_id TEXT REFERENCES customers(id), employee_id TEXT REFERENCES employees(id), total REAL NOT NULL, status TEXT DEFAULT 'pending' CHECK(status IN ('pending','confirmed','shipped','delivered','cancelled')), payment_method TEXT DEFAULT 'cash' CHECK(payment_method IN ('cash','card','transfer','credit')), notes TEXT, created_by TEXT REFERENCES users(id), created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(company_id, code));
     CREATE TABLE IF NOT EXISTS order_items (id TEXT PRIMARY KEY, order_id TEXT REFERENCES orders(id) ON DELETE CASCADE, product_id TEXT REFERENCES products(id), quantity INTEGER NOT NULL, unit_price REAL NOT NULL, subtotal REAL NOT NULL);
-    CREATE TABLE IF NOT EXISTS transactions (id TEXT PRIMARY KEY, code TEXT UNIQUE NOT NULL, type TEXT NOT NULL CHECK(type IN ('income','expense','transfer')), category TEXT NOT NULL, description TEXT, amount REAL NOT NULL, payment_method TEXT DEFAULT 'cash', reference TEXT, date TEXT NOT NULL, created_by TEXT REFERENCES users(id), created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
-    CREATE TABLE IF NOT EXISTS interactions (id TEXT PRIMARY KEY, customer_id TEXT REFERENCES customers(id) ON DELETE CASCADE, type TEXT NOT NULL CHECK(type IN ('call','email','meeting','note','task')), subject TEXT NOT NULL, description TEXT, status TEXT DEFAULT 'pending' CHECK(status IN ('pending','completed','scheduled')), assigned_to TEXT REFERENCES employees(id), due_date TEXT, created_by TEXT REFERENCES users(id), created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
-    CREATE TABLE IF NOT EXISTS projects (id TEXT PRIMARY KEY, code TEXT UNIQUE NOT NULL, name TEXT NOT NULL, description TEXT, customer_id TEXT REFERENCES customers(id), start_date TEXT NOT NULL, end_date TEXT, budget REAL, status TEXT DEFAULT 'planning' CHECK(status IN ('planning','active','paused','completed','cancelled')), priority TEXT DEFAULT 'medium' CHECK(priority IN ('low','medium','high','critical')), created_by TEXT REFERENCES users(id), created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
-    CREATE TABLE IF NOT EXISTS tasks (id TEXT PRIMARY KEY, project_id TEXT REFERENCES projects(id) ON DELETE CASCADE, name TEXT NOT NULL, description TEXT, assigned_to TEXT REFERENCES employees(id), status TEXT DEFAULT 'pending' CHECK(status IN ('pending','in_progress','review','completed')), priority TEXT DEFAULT 'medium' CHECK(priority IN ('low','medium','high','critical')), due_date TEXT, estimated_hours REAL, actual_hours REAL DEFAULT 0, created_by TEXT REFERENCES users(id), created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
-    CREATE TABLE IF NOT EXISTS notifications (id TEXT PRIMARY KEY, user_id TEXT REFERENCES users(id), title TEXT NOT NULL, message TEXT, type TEXT DEFAULT 'info' CHECK(type IN ('info','success','warning','error')), read INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
+    CREATE TABLE IF NOT EXISTS transactions (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), code TEXT NOT NULL, type TEXT NOT NULL CHECK(type IN ('income','expense','transfer')), category TEXT NOT NULL, description TEXT, amount REAL NOT NULL, payment_method TEXT DEFAULT 'cash', reference TEXT, date TEXT NOT NULL, created_by TEXT REFERENCES users(id), created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(company_id, code));
+    CREATE TABLE IF NOT EXISTS interactions (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), customer_id TEXT REFERENCES customers(id) ON DELETE CASCADE, type TEXT NOT NULL CHECK(type IN ('call','email','meeting','note','task')), subject TEXT NOT NULL, description TEXT, status TEXT DEFAULT 'pending' CHECK(status IN ('pending','completed','scheduled')), assigned_to TEXT REFERENCES employees(id), due_date TEXT, created_by TEXT REFERENCES users(id), created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
+    CREATE TABLE IF NOT EXISTS projects (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), code TEXT NOT NULL, name TEXT NOT NULL, description TEXT, customer_id TEXT REFERENCES customers(id), start_date TEXT NOT NULL, end_date TEXT, budget REAL, status TEXT DEFAULT 'planning' CHECK(status IN ('planning','active','paused','completed','cancelled')), priority TEXT DEFAULT 'medium' CHECK(priority IN ('low','medium','high','critical')), created_by TEXT REFERENCES users(id), created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(company_id, code));
+    CREATE TABLE IF NOT EXISTS tasks (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), project_id TEXT REFERENCES projects(id) ON DELETE CASCADE, name TEXT NOT NULL, description TEXT, assigned_to TEXT REFERENCES employees(id), status TEXT DEFAULT 'pending' CHECK(status IN ('pending','in_progress','review','completed')), priority TEXT DEFAULT 'medium' CHECK(priority IN ('low','medium','high','critical')), due_date TEXT, estimated_hours REAL, actual_hours REAL DEFAULT 0, created_by TEXT REFERENCES users(id), created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
+    CREATE TABLE IF NOT EXISTS notifications (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), user_id TEXT REFERENCES users(id), title TEXT NOT NULL, message TEXT, type TEXT DEFAULT 'info' CHECK(type IN ('info','success','warning','error')), read INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
   `);
-  const userCount = db.prepare('SELECT COUNT(*) as c FROM users').get();
-  if (userCount.c === 0) {
+
+  // Migration: add columns to existing tables (safe if already exist)
+  const migrations = [
+    `ALTER TABLE users ADD COLUMN company_id TEXT REFERENCES companies(id)`,
+    `ALTER TABLE employees ADD COLUMN company_id TEXT REFERENCES companies(id)`,
+    `ALTER TABLE categories ADD COLUMN company_id TEXT REFERENCES companies(id)`,
+    `ALTER TABLE products ADD COLUMN company_id TEXT REFERENCES companies(id)`,
+    `ALTER TABLE customers ADD COLUMN company_id TEXT REFERENCES companies(id)`,
+    `ALTER TABLE orders ADD COLUMN company_id TEXT REFERENCES companies(id)`,
+    `ALTER TABLE transactions ADD COLUMN company_id TEXT REFERENCES companies(id)`,
+    `ALTER TABLE interactions ADD COLUMN company_id TEXT REFERENCES companies(id)`,
+    `ALTER TABLE projects ADD COLUMN company_id TEXT REFERENCES companies(id)`,
+    `ALTER TABLE tasks ADD COLUMN company_id TEXT REFERENCES companies(id)`,
+    `ALTER TABLE notifications ADD COLUMN company_id TEXT REFERENCES companies(id)`,
+    `ALTER TABLE users ADD COLUMN password_hash TEXT`,
+    `ALTER TABLE companies ADD COLUMN logo_url TEXT`,
+    `ALTER TABLE companies ADD COLUMN primary_color TEXT DEFAULT '#6366f1'`,
+    `ALTER TABLE companies ADD COLUMN secondary_color TEXT DEFAULT '#06b6d4'`,
+    `ALTER TABLE companies ADD COLUMN api_key TEXT`,
+    `ALTER TABLE companies ADD COLUMN plan_expires_at TEXT`,
+  ];
+  for (const sql of migrations) {
+    try { db.exec(sql); } catch (e) { /* column may already exist */ }
+  }
+
+  const companyCount = db.prepare('SELECT COUNT(*) as c FROM companies').get();
+  if (companyCount.c === 0) {
+    const companyId = uuidv4();
+    const expires = new Date(); expires.setDate(expires.getDate() + 14);
+    db.prepare('INSERT INTO companies (id, name, slug, plan, plan_expires_at) VALUES (?,?,?,?,?)').run(companyId, 'Synex Demo', 'synex', 'enterprise', null);
     console.log('Creating demo users...');
     const users = [
-      { id: uuidv4(), google_id: 'demo_admin', email: 'admin@synexerp.com', name: 'Admin Nexus', avatar: null, role: 'admin' },
-      { id: uuidv4(), google_id: 'demo_manager', email: 'manager@synexerp.com', name: 'Gerente Sistema', avatar: null, role: 'manager' },
-      { id: uuidv4(), google_id: 'demo_user', email: 'user@synexerp.com', name: 'Usuario Demo', avatar: null, role: 'user' },
-      { id: uuidv4(), google_id: 'demo_ceo', email: '1044619997@synexerp.com', name: 'CEO Nexus', avatar: null, role: 'ceo' },
+      { google_id: 'demo_admin', email: 'admin@synex.com', name: 'Admin Synex', role: 'admin' },
+      { google_id: 'demo_manager', email: 'manager@synex.com', name: 'Gerente Sistema', role: 'manager' },
+      { google_id: 'demo_user', email: 'user@synex.com', name: 'Usuario Demo', role: 'user' },
+      { google_id: 'demo_ceo', email: 'ceo@synex.com', name: 'CEO Synex', role: 'superadmin' },
     ];
-    const ins = db.prepare('INSERT OR IGNORE INTO users (id, google_id, email, name, avatar, role) VALUES (?,?,?,?,?,?)');
-    for (const u of users) ins.run(u.id, u.google_id, u.email, u.name, u.avatar, u.role);
-    try { seedData(); } catch (e) { console.error('Seed extra falló:', e.message); }
+    const ins = db.prepare('INSERT OR IGNORE INTO users (id, company_id, google_id, email, name, avatar, role) VALUES (?,?,?,?,?,?,?)');
+    for (const u of users) ins.run(uuidv4(), companyId, u.google_id, u.email, u.name, null, u.role);
+    try { seedData(companyId); } catch (e) { console.error('Seed extra falló:', e.message); }
   }
 };
 

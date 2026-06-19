@@ -13,40 +13,4 @@ passport.deserializeUser(async (id, done) => {
   }
 });
 
-if (process.env.GOOGLE_CLIENT_ID) {
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
-passport.use(new GoogleStrategy({
-  clientID: process.env.GOOGLE_CLIENT_ID,
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: process.env.CALLBACK_URL
-}, async (accessToken, refreshToken, profile, done) => {
-  try {
-    const email = profile.emails?.[0]?.value;
-    if (!email) return done(new Error('No email found'));
-
-    let user = await db.get('SELECT * FROM users WHERE google_id = ?', profile.id);
-
-    if (!user) {
-      user = await db.get('SELECT * FROM users WHERE email = ?', email);
-    }
-
-    if (user) {
-      await db.run('UPDATE users SET google_id = ?, avatar = ?, last_login = CURRENT_TIMESTAMP WHERE id = ?',
-        profile.id, profile.photos?.[0]?.value || null, user.id);
-      user = await db.get('SELECT * FROM users WHERE id = ?', user.id);
-    } else {
-      const id = uuidv4();
-      await db.run(`INSERT INTO users (id, google_id, email, name, avatar, role, last_login)
-        VALUES (?, ?, ?, ?, ?, 'user', CURRENT_TIMESTAMP)`,
-        id, profile.id, email, profile.displayName, profile.photos?.[0]?.value || null);
-      user = await db.get('SELECT * FROM users WHERE id = ?', id);
-    }
-
-    done(null, user);
-  } catch (err) {
-    done(err, null);
-  }
-}));
-}
-
 module.exports = passport;

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { KeyRound } from 'lucide-react';
+import { Mail, Lock } from 'lucide-react';
 import useAuthStore from '../store/authStore';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { apiFetch } from '../api/fetch';
 
 export default function Login() {
@@ -10,6 +10,7 @@ export default function Login() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -24,12 +25,12 @@ export default function Login() {
     }
   }, []);
 
-  const handleDemoLogin = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     try {
-      await login(email);
+      await login(email, password);
       navigate('/dashboard');
     } catch (err) {
       setError(err.message);
@@ -39,7 +40,6 @@ export default function Login() {
 
   return (
     <div className="relative flex min-h-screen overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900">
-      {/* Background Effects */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -left-40 -top-40 h-80 w-80 rounded-full bg-indigo-500/20 blur-3xl" />
         <div className="absolute -bottom-40 -right-40 h-80 w-80 rounded-full from-purple-500/20 blur-3xl" />
@@ -47,7 +47,6 @@ export default function Login() {
       </div>
 
       <div className="relative m-auto flex w-full max-w-5xl items-center gap-12 px-4">
-        {/* Left - Brand */}
         <motion.div
           initial={{ opacity: 0, x: -50 }}
           animate={{ opacity: 1, x: 0 }}
@@ -55,10 +54,10 @@ export default function Login() {
           className="hidden flex-1 lg:block"
         >
           <div className="flex items-center gap-4 mb-6">
-            <img src="/SynexERP.png" alt="SynexERP" className="h-20 w-20 rounded-2xl" />
+            <img src="/Synex.png" alt="Synex" className="h-20 w-20 rounded-2xl" />
             <div>
-              <h1 className="text-4xl font-bold text-white">SynexERP</h1>
-              <p className="text-sm text-indigo-300/80">Enterprise Resource Planning</p>
+              <h1 className="text-4xl font-bold text-white">Synex</h1>
+              <p className="text-sm text-indigo-300/80">Enterprise Suite</p>
             </div>
           </div>
 
@@ -89,7 +88,6 @@ export default function Login() {
           </div>
         </motion.div>
 
-        {/* Right - Login Card */}
         <motion.div
           initial={{ opacity: 0, x: 50 }}
           animate={{ opacity: 1, x: 0 }}
@@ -98,7 +96,7 @@ export default function Login() {
         >
           <div className="glass rounded-3xl p-8 shadow-2xl dark:bg-slate-900/80">
             <div className="mb-8 text-center">
-              <img src="/SynexERP.png" alt="SynexERP" className="mx-auto mb-4 h-24 w-24 rounded-2xl" />
+              <img src="/Synex.png" alt="Synex" className="mx-auto mb-4 h-24 w-24 rounded-2xl" />
               <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Iniciar Sesión</h2>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 Accede a tu panel de control empresarial
@@ -112,24 +110,35 @@ export default function Login() {
               </motion.div>
             )}
 
-            {/* Demo Login */}
-            <form onSubmit={handleDemoLogin} className="space-y-4">
+            <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">Email de prueba</label>
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">Email</label>
                 <div className="relative mt-1.5">
-                  <KeyRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                   <input
                     type="email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    placeholder="admin@synexerp.com"
+                    placeholder="tu@synex.com"
                     className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none transition-all focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:focus:border-indigo-500"
                     required
                   />
                 </div>
-                <p className="mt-1.5 text-[10px] text-slate-400">
-                  Usuarios demo: admin@synexerp.com · manager@synexerp.com · 1044619997@synexerp.com
-                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">Contraseña</label>
+                <div className="relative mt-1.5">
+                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none transition-all focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:focus:border-indigo-500"
+                    required
+                  />
+                </div>
               </div>
 
               <button
@@ -137,17 +146,13 @@ export default function Login() {
                 disabled={loading}
                 className="gradient-primary w-full rounded-xl py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-xl hover:shadow-indigo-500/30 active:scale-[0.98] disabled:opacity-70"
               >
-                {loading ? 'Ingresando...' : 'Ingresar con Demo'}
+                {loading ? 'Ingresando...' : 'Iniciar Sesión'}
               </button>
             </form>
 
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200 dark:border-slate-700" /></div>
-              <div className="relative flex justify-center"><span className="bg-white px-3 text-xs text-slate-400 dark:bg-slate-900">Demo</span></div>
-            </div>
-
-            <p className="mt-6 text-center text-[10px] text-slate-400 dark:text-slate-500">
-              Al iniciar sesión aceptas los términos y condiciones de NEXUS ERP
+            <p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
+              ¿No tienes empresa?{' '}
+              <Link to="/register" className="font-medium text-indigo-500 hover:text-indigo-400">Crear cuenta</Link>
             </p>
           </div>
         </motion.div>

@@ -9,8 +9,8 @@ router.get('/', ah(async (req, res) => {
   const projects = await db.all(`
     SELECT p.*, c.name as customer_name FROM projects p
     LEFT JOIN customers c ON p.customer_id = c.id
-    ORDER BY p.created_at DESC
-  `);
+    WHERE p.company_id = ? ORDER BY p.created_at DESC
+  `, req.companyId);
   res.json(projects);
 }));
 
@@ -18,14 +18,14 @@ router.get('/:id', ah(async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'No autenticado' });
   const proj = await db.get(`
     SELECT p.*, c.name as customer_name FROM projects p
-    LEFT JOIN customers c ON p.customer_id = c.id WHERE p.id = ?
-  `, req.params.id);
+    LEFT JOIN customers c ON p.customer_id = c.id WHERE p.id = ? AND p.company_id = ?
+  `, req.params.id, req.companyId);
   if (!proj) return res.status(404).json({ error: 'Proyecto no encontrado' });
   const tasks = await db.all(`
     SELECT t.*, e.name as assigned_name FROM tasks t
     LEFT JOIN employees e ON t.assigned_to = e.id
-    WHERE t.project_id = ? ORDER BY t.created_at DESC
-  `, req.params.id);
+    WHERE t.project_id = ? AND t.company_id = ? ORDER BY t.created_at DESC
+  `, req.params.id, req.companyId);
   res.json({ ...proj, tasks });
 }));
 
@@ -33,26 +33,26 @@ router.post('/', ah(async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'No autenticado' });
   const { name, description, customer_id, start_date, end_date, budget, priority } = req.body;
   const id = uuidv4();
-  const result = await db.get('SELECT COUNT(*) as c FROM projects');
+  const result = await db.get('SELECT COUNT(*) as c FROM projects WHERE company_id = ?', req.companyId);
   const code = `PROJ-${String((result.c || 0) + 1).padStart(3, '0')}`;
-  await db.run(`INSERT INTO projects (id,code,name,description,customer_id,start_date,end_date,budget,priority,created_by)
-    VALUES (?,?,?,?,?,?,?,?,?,?)`, id, code, name, description, customer_id, start_date, end_date, budget, priority || 'medium', req.user.id);
-  const proj = await db.get('SELECT * FROM projects WHERE id = ?', id);
+  await db.run(`INSERT INTO projects (id,code,name,description,customer_id,start_date,end_date,budget,priority,company_id,created_by)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?)`, id, code, name, description, customer_id, start_date, end_date, budget, priority || 'medium', req.companyId, req.user.id);
+  const proj = await db.get('SELECT * FROM projects WHERE id = ? AND company_id = ?', id, req.companyId);
   res.status(201).json(proj);
 }));
 
 router.put('/:id', ah(async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'No autenticado' });
   const { name, description, customer_id, start_date, end_date, budget, status, priority } = req.body;
-  await db.run(`UPDATE projects SET name=?,description=?,customer_id=?,start_date=?,end_date=?,budget=?,status=?,priority=? WHERE id=?`,
-    name, description, customer_id, start_date, end_date, budget, status, priority, req.params.id);
-  const proj = await db.get('SELECT * FROM projects WHERE id = ?', req.params.id);
+  await db.run(`UPDATE projects SET name=?,description=?,customer_id=?,start_date=?,end_date=?,budget=?,status=?,priority=? WHERE id=? AND company_id=?`,
+    name, description, customer_id, start_date, end_date, budget, status, priority, req.params.id, req.companyId);
+  const proj = await db.get('SELECT * FROM projects WHERE id = ? AND company_id = ?', req.params.id, req.companyId);
   res.json(proj);
 }));
 
 router.delete('/:id', ah(async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'No autenticado' });
-  await db.run('DELETE FROM projects WHERE id = ?', req.params.id);
+  await db.run('DELETE FROM projects WHERE id = ? AND company_id = ?', req.params.id, req.companyId);
   res.json({ success: true });
 }));
 
@@ -60,24 +60,24 @@ router.post('/:id/tasks', ah(async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'No autenticado' });
   const { name, description, assigned_to, priority, due_date, estimated_hours } = req.body;
   const id = uuidv4();
-  await db.run(`INSERT INTO tasks (id,project_id,name,description,assigned_to,priority,due_date,estimated_hours,created_by)
-    VALUES (?,?,?,?,?,?,?,?,?)`, id, req.params.id, name, description, assigned_to, priority || 'medium', due_date, estimated_hours, req.user.id);
-  const task = await db.get('SELECT t.*, e.name as assigned_name FROM tasks t LEFT JOIN employees e ON t.assigned_to = e.id WHERE t.id = ?', id);
+  await db.run(`INSERT INTO tasks (id,project_id,name,description,assigned_to,priority,due_date,estimated_hours,company_id,created_by)
+    VALUES (?,?,?,?,?,?,?,?,?,?)`, id, req.params.id, name, description, assigned_to, priority || 'medium', due_date, estimated_hours, req.companyId, req.user.id);
+  const task = await db.get('SELECT t.*, e.name as assigned_name FROM tasks t LEFT JOIN employees e ON t.assigned_to = e.id WHERE t.id = ? AND t.company_id = ?', id, req.companyId);
   res.status(201).json(task);
 }));
 
 router.put('/tasks/:id', ah(async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'No autenticado' });
   const { name, description, assigned_to, status, priority, due_date, estimated_hours, actual_hours } = req.body;
-  await db.run(`UPDATE tasks SET name=?,description=?,assigned_to=?,status=?,priority=?,due_date=?,estimated_hours=?,actual_hours=? WHERE id=?`,
-    name, description, assigned_to, status, priority, due_date, estimated_hours, actual_hours, req.params.id);
-  const task = await db.get('SELECT t.*, e.name as assigned_name FROM tasks t LEFT JOIN employees e ON t.assigned_to = e.id WHERE t.id = ?', req.params.id);
+  await db.run(`UPDATE tasks SET name=?,description=?,assigned_to=?,status=?,priority=?,due_date=?,estimated_hours=?,actual_hours=? WHERE id=? AND company_id=?`,
+    name, description, assigned_to, status, priority, due_date, estimated_hours, actual_hours, req.params.id, req.companyId);
+  const task = await db.get('SELECT t.*, e.name as assigned_name FROM tasks t LEFT JOIN employees e ON t.assigned_to = e.id WHERE t.id = ? AND t.company_id = ?', req.params.id, req.companyId);
   res.json(task);
 }));
 
 router.delete('/tasks/:id', ah(async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'No autenticado' });
-  await db.run('DELETE FROM tasks WHERE id = ?', req.params.id);
+  await db.run('DELETE FROM tasks WHERE id = ? AND company_id = ?', req.params.id, req.companyId);
   res.json({ success: true });
 }));
 

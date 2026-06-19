@@ -1,7 +1,7 @@
 const db = require('./db');
 
 async function main() {
-  console.log('Seeding NEXUS ERP...\n');
+  console.log('Seeding Synex...\n');
 
   // Wipe data then re-init so auto-seed triggers
   const tables = ['notifications','tasks','projects','interactions','transactions','order_items','orders','customers','products','categories','attendance','employees','users'];
