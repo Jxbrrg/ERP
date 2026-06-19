@@ -53,11 +53,13 @@ app.post('/auth/login', ah(async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' });
   const user = await db.get('SELECT * FROM users WHERE email = ?', email);
-  if (!user) return res.status(401).json({ error: 'Credenciales inválidas' });
-  if (!user.password_hash) return res.status(401).json({ error: 'Credenciales inválidas' });
-  const [salt, hash] = user.password_hash.split(':');
+  if (!user) return res.status(401).json({ error: 'Usuario no encontrado' });
+  if (!user.password_hash) return res.status(401).json({ error: 'Sin contraseña asignada. Usa "Establecer contraseña"' });
+  const parts = user.password_hash.split(':');
+  const salt = parts[0];
+  const hash = parts.slice(1).join(':');
   const inputHash = require('crypto').pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
-  if (hash !== inputHash) return res.status(401).json({ error: 'Credenciales inválidas' });
+  if (hash !== inputHash) return res.status(401).json({ error: 'Contraseña incorrecta' });
   const token = jwt.sign({ email: user.email }, JWT_SECRET, { expiresIn: '1d' });
   const { password_hash, ...safeUser } = user;
   res.json({ user: safeUser, token });

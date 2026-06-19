@@ -209,6 +209,10 @@ const initDb = () => {
     try { db.exec(sql); } catch (e) { /* column may already exist */ }
   }
 
+  // Backfill password_hash for users who registered before password auth existed
+  const demoHash = require('crypto').pbkdf2Sync('admin123', 'demo', 1000, 64, 'sha512').toString('hex');
+  db.prepare('UPDATE users SET password_hash = ? WHERE password_hash IS NULL').run('demo:' + demoHash);
+
   const companyCount = db.prepare('SELECT COUNT(*) as c FROM companies').get();
   if (companyCount.c === 0) {
     const companyId = uuidv4();
