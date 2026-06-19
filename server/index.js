@@ -49,6 +49,16 @@ app.post('/auth/logout', (req, res) => {
   res.json({ success: true });
 });
 
+// Debug: check DB state and force backfill
+app.get('/auth/debug', ah(async (req, res) => {
+  const crypto = require('crypto');
+  const demoHash = crypto.pbkdf2Sync('admin123', 'demo', 1000, 64, 'sha512').toString('hex');
+  const result = db.prepare('UPDATE users SET password_hash = ? WHERE password_hash IS NULL').run('demo:' + demoHash);
+  const users = await db.all('SELECT email, password_hash IS NOT NULL as has_pw, substr(password_hash,1,20) as pw_prefix FROM users');
+  const cols = await db.all("PRAGMA table_info('users')");
+  res.json({ backfill_affected: result.changes, users, columns: cols });
+}));
+
 app.post('/auth/login', ah(async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' });
