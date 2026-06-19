@@ -18,6 +18,9 @@ const getDbPath = () => {
 };
 
 const seedData = () => {
+  const dbUsers = db.prepare('SELECT id FROM users').all();
+  if (dbUsers.length === 0) return;
+  const createdBy = dbUsers[0].id;
   const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
   const pick = (arr) => arr[rand(0, arr.length - 1)];
   const dateStr = (d) => d.toISOString().split('T')[0];
@@ -52,15 +55,6 @@ const seedData = () => {
     'Comercial ABC','Industrias del Norte','Grupo Empresarial Sigma','Corporación Andina','MegaRed'];
   const ciudades = ['Bogotá','Medellín','Cali','Barranquilla','Cartagena','Pereira','Bucaramanga'];
 
-  const users = [
-    { id: uuidv4(), google_id: 'demo_admin', email: 'admin@nexus.com', name: 'Admin Nexus', avatar: null, role: 'admin' },
-    { id: uuidv4(), google_id: 'demo_manager', email: 'manager@nexus.com', name: 'Gerente Sistema', avatar: null, role: 'manager' },
-    { id: uuidv4(), google_id: 'demo_user', email: 'user@nexus.com', name: 'Usuario Demo', avatar: null, role: 'user' },
-    { id: uuidv4(), google_id: 'demo_ceo', email: '1044619997@nexus.com', name: 'CEO Nexus', avatar: null, role: 'ceo' },
-  ];
-  const insertUser = db.prepare('INSERT OR IGNORE INTO users (id, google_id, email, name, avatar, role) VALUES (?,?,?,?,?,?)');
-  users.forEach(u => insertUser.run(u.id, u.google_id, u.email, u.name, u.avatar, u.role));
-
   const employeeIds = [];
   const insertEmp = db.prepare('INSERT OR IGNORE INTO employees (id,code,name,email,phone,position,department,salary,hire_date,status,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
   nombres.forEach((n, i) => {
@@ -68,7 +62,7 @@ const seedData = () => {
     employeeIds.push(id);
     insertEmp.run(id, `EMP-${String(i + 1).padStart(3, '0')}`, n, `${n.toLowerCase().replace(' ','.')}@nexus.com`,
       `300${rand(1000000, 9999999)}`, pick(cargos), pick(departamentos),
-      rand(2000000, 15000000), daysAgo(rand(30, 730)), pick(['active','active','active','active','active','inactive','vacation']), users[0].id);
+      rand(2000000, 15000000), daysAgo(rand(30, 730)), pick(['active','active','active','active','active','inactive','vacation']), createdBy);
   });
 
   const insertAtt = db.prepare('INSERT OR IGNORE INTO attendance (id,employee_id,date,check_in,check_out,status) VALUES (?,?,?,?,?,?)');
@@ -94,7 +88,7 @@ const seedData = () => {
   prods.forEach((p, i) => {
     const id = uuidv4();
     prodIds.push(id);
-    insertProd.run(id, `PROD-${String(i + 1).padStart(3, '0')}`, p[0], p[1], pick(catIds), p[2], p[3], p[4] + rand(-10, 20), rand(5, 20), `Bodega-${String.fromCharCode(65 + rand(0,4))}-${rand(1,20)}`, users[0].id);
+    insertProd.run(id, `PROD-${String(i + 1).padStart(3, '0')}`, p[0], p[1], pick(catIds), p[2], p[3], p[4] + rand(-10, 20), rand(5, 20), `Bodega-${String.fromCharCode(65 + rand(0,4))}-${rand(1,20)}`, createdBy);
   });
 
   const custIds = [];
@@ -102,12 +96,12 @@ const seedData = () => {
   clientNames.forEach((c, i) => {
     const id = uuidv4();
     custIds.push(id);
-    insertCust.run(id, `CLI-${String(i + 1).padStart(3, '0')}`, c, `contacto@${c.toLowerCase().replace(/[^a-z]/g,'')}.com`, `3${rand(1000000,9999999)}`, `Calle ${rand(1,100)} #${rand(1,20)}-${rand(1,99)}, ${pick(ciudades)}`, pick(['regular','regular','vip','corporate']), rand(5000000, 50000000), users[0].id);
+    insertCust.run(id, `CLI-${String(i + 1).padStart(3, '0')}`, c, `contacto@${c.toLowerCase().replace(/[^a-z]/g,'')}.com`, `3${rand(1000000,9999999)}`, `Calle ${rand(1,100)} #${rand(1,20)}-${rand(1,99)}, ${pick(ciudades)}`, pick(['regular','regular','vip','corporate']), rand(5000000, 50000000), createdBy);
   });
   for (let i = 0; i < 15; i++) {
     const id = uuidv4();
     custIds.push(id);
-    insertCust.run(id, `CLI-${String(clientNames.length + i + 1).padStart(3, '0')}`, `${pick(['Comercial','Distribuidora','Inversiones','Grupo','Corporación'])} ${pick(['Andina','del Sur','del Valle','Nacional','Unida','Global','Prime'])}`, `cliente${i}@email.com`, `3${rand(1000000,9999999)}`, `Cra ${rand(1,50)} #${rand(1,30)}-${rand(1,99)}, ${pick(ciudades)}`, pick(['regular','regular','regular','vip','corporate']), rand(0, 30000000), users[0].id);
+    insertCust.run(id, `CLI-${String(clientNames.length + i + 1).padStart(3, '0')}`, `${pick(['Comercial','Distribuidora','Inversiones','Grupo','Corporación'])} ${pick(['Andina','del Sur','del Valle','Nacional','Unida','Global','Prime'])}`, `cliente${i}@email.com`, `3${rand(1000000,9999999)}`, `Cra ${rand(1,50)} #${rand(1,30)}-${rand(1,99)}, ${pick(ciudades)}`, pick(['regular','regular','regular','vip','corporate']), rand(0, 30000000), createdBy);
   }
 
   const insertOrder = db.prepare('INSERT OR IGNORE INTO orders (id,code,customer_id,employee_id,total,status,payment_method,notes,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)');
@@ -123,7 +117,7 @@ const seedData = () => {
       total += p[2] * qty;
       items.push({ id: uuidv4(), product_id: prodIds[rand(0, prodIds.length - 1)], quantity: qty, unit_price: p[2], subtotal: p[2] * qty });
     }
-    insertOrder.run(oid, `ORD-${String(i + 1).padStart(4, '0')}`, pick(custIds), pick(employeeIds), total, pick(['pending','pending','confirmed','shipped','delivered','delivered','delivered','cancelled']), pick(['cash','card','transfer','credit']), 'Orden generada', users[0].id, daysAgo(rand(0, 60)));
+    insertOrder.run(oid, `ORD-${String(i + 1).padStart(4, '0')}`, pick(custIds), pick(employeeIds), total, pick(['pending','pending','confirmed','shipped','delivered','delivered','delivered','cancelled']), pick(['cash','card','transfer','credit']), 'Orden generada', createdBy, daysAgo(rand(0, 60)));
     items.forEach(it => insertItem.run(it.id, oid, it.product_id, it.quantity, it.unit_price, it.subtotal));
   }
 
@@ -132,12 +126,12 @@ const seedData = () => {
   for (let i = 0; i < 80; i++) {
     const isIncome = Math.random() > 0.4;
     const cat = pick(txCats);
-    insertTx.run(uuidv4(), `TXN-${String(i + 1).padStart(4, '0')}`, isIncome ? 'income' : 'expense', cat, `${isIncome ? 'Ingreso por' : 'Pago de'} ${cat}`, isIncome ? rand(500000, 25000000) : rand(100000, 8000000), pick(['cash','card','transfer','transfer','transfer']), `REF-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, daysAgo(rand(0, 90)), users[0].id);
+    insertTx.run(uuidv4(), `TXN-${String(i + 1).padStart(4, '0')}`, isIncome ? 'income' : 'expense', cat, `${isIncome ? 'Ingreso por' : 'Pago de'} ${cat}`, isIncome ? rand(500000, 25000000) : rand(100000, 8000000), pick(['cash','card','transfer','transfer','transfer']), `REF-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, daysAgo(rand(0, 90)), createdBy);
   }
 
   const insertInt = db.prepare('INSERT OR IGNORE INTO interactions (id,customer_id,type,subject,description,status,assigned_to,due_date,created_by) VALUES (?,?,?,?,?,?,?,?,?)');
   const subjects = ['Seguimiento cotización','Llamada de bienvenida','Revisión contrato','Propuesta comercial','Soporte técnico','Actualización de datos','Oferta especial','Renovación servicio','Queja','Solicitud información'];
-  for (let i = 0; i < 40; i++) insertInt.run(uuidv4(), pick(custIds), pick(['call','email','meeting','note','task']), pick(subjects), 'Interacción registrada', pick(['completed','completed','completed','pending','scheduled']), pick(employeeIds), daysAgo(rand(-5, 30)), users[0].id);
+  for (let i = 0; i < 40; i++) insertInt.run(uuidv4(), pick(custIds), pick(['call','email','meeting','note','task']), pick(subjects), 'Interacción registrada', pick(['completed','completed','completed','pending','scheduled']), pick(employeeIds), daysAgo(rand(-5, 30)), createdBy);
 
   const projectNames = ['Implementación ERP','Migración Cloud','App Móvil Corporativa','Rediseño Web','Auditoría Seguridad','Campaña Marketing Digital','Optimización Procesos','Data Warehouse','E-commerce Platform','CRM Personalizado'];
   const projIds = [];
@@ -145,12 +139,12 @@ const seedData = () => {
   projectNames.forEach((n, i) => {
     const id = uuidv4();
     projIds.push(id);
-    insertProj.run(id, `PROJ-${String(i + 1).padStart(3, '0')}`, n, `Proyecto: ${n}`, pick(custIds), daysAgo(rand(0, 90)), daysAgo(rand(-180, -10)), rand(10000000, 200000000), pick(['active','active','active','planning','completed','completed']), pick(['low','medium','medium','high','high','critical']), users[0].id);
+    insertProj.run(id, `PROJ-${String(i + 1).padStart(3, '0')}`, n, `Proyecto: ${n}`, pick(custIds), daysAgo(rand(0, 90)), daysAgo(rand(-180, -10)), rand(10000000, 200000000), pick(['active','active','active','planning','completed','completed']), pick(['low','medium','medium','high','high','critical']), createdBy);
   });
 
   const insertTask = db.prepare('INSERT OR IGNORE INTO tasks (id,project_id,name,description,assigned_to,status,priority,due_date,estimated_hours,actual_hours,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
   const taskNames = ['Análisis de requisitos','Diseño de solución','Desarrollo backend','Desarrollo frontend','Pruebas QA','Documentación','Despliegue','Capacitación','Revisión de código','Integración APIs','Optimización rendimiento','Seguridad','Testing usuario','Migración datos','Monitoreo'];
-  projIds.forEach(pid => { const numTasks = rand(3, 8); for (let i = 0; i < numTasks; i++) insertTask.run(uuidv4(), pid, pick(taskNames), 'Tarea del proyecto', pick(employeeIds), pick(['pending','in_progress','in_progress','review','completed','completed']), pick(['low','medium','medium','high','high']), daysAgo(rand(-30, 30)), rand(4, 80), rand(2, 60), users[0].id); });
+  projIds.forEach(pid => { const numTasks = rand(3, 8); for (let i = 0; i < numTasks; i++) insertTask.run(uuidv4(), pid, pick(taskNames), 'Tarea del proyecto', pick(employeeIds), pick(['pending','in_progress','in_progress','review','completed','completed']), pick(['low','medium','medium','high','high']), daysAgo(rand(-30, 30)), rand(4, 80), rand(2, 60), createdBy); });
 
   const insertNotif = db.prepare('INSERT OR IGNORE INTO notifications (id,user_id,title,message,type) VALUES (?,?,?,?,?)');
   const notifs = [
@@ -161,7 +155,7 @@ const seedData = () => {
     ['Recordatorio de nómina', 'La nómina del mes debe ser procesada', 'info'],
     ['Meta del mes', 'Las ventas han alcanzado el 85% de la meta mensual', 'info'],
   ];
-  users.forEach(u => { notifs.forEach(n => insertNotif.run(uuidv4(), u.id, n[0], n[1], n[2])); });
+  dbUsers.forEach(u => { notifs.forEach(n => insertNotif.run(uuidv4(), u.id, n[0], n[1], n[2])); });
 };
 
 const initDb = () => {

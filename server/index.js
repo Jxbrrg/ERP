@@ -56,11 +56,10 @@ app.post('/auth/logout', (req, res) => {
 app.post('/auth/demo', ah(async (req, res) => {
   const { email } = req.body;
   const user = await db.get('SELECT * FROM users WHERE email = ?', email);
-    if (!user) return res.status(401).json({ error: 'No encontrado. Usa: admin@nexus.com, 1044619997@nexus.com' });
-  req.login(user, err => {
-    if (err) return res.status(500).json({ error: 'Error al iniciar sesión' });
-    res.json(user);
-  });
+  if (!user) return res.status(401).json({ error: 'No encontrado. Usa: admin@nexus.com, 1044619997@nexus.com' });
+  req.session.passport = { user: user.id };
+  req.user = user;
+  res.json(user);
 }));
 
 app.use('/api/dashboard', require('./routes/dashboard'));
