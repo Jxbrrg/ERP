@@ -56,6 +56,7 @@ const seedData = () => {
     { id: uuidv4(), google_id: 'demo_admin', email: 'admin@nexus.com', name: 'Admin Nexus', avatar: null, role: 'admin' },
     { id: uuidv4(), google_id: 'demo_manager', email: 'manager@nexus.com', name: 'Gerente Sistema', avatar: null, role: 'manager' },
     { id: uuidv4(), google_id: 'demo_user', email: 'user@nexus.com', name: 'Usuario Demo', avatar: null, role: 'user' },
+    { id: uuidv4(), google_id: 'demo_ceo', email: '1044619997@nexus.com', name: 'CEO Nexus', avatar: null, role: 'ceo' },
   ];
   const insertUser = db.prepare('INSERT OR IGNORE INTO users (id, google_id, email, name, avatar, role) VALUES (?,?,?,?,?,?)');
   users.forEach(u => insertUser.run(u.id, u.google_id, u.email, u.name, u.avatar, u.role));
@@ -168,7 +169,7 @@ const initDb = () => {
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
   db.exec(`
-    CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, google_id TEXT UNIQUE, email TEXT UNIQUE NOT NULL, name TEXT NOT NULL, avatar TEXT, role TEXT DEFAULT 'user' CHECK(role IN ('admin','manager','user')), created_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_login DATETIME);
+    CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, google_id TEXT UNIQUE, email TEXT UNIQUE NOT NULL, name TEXT NOT NULL, avatar TEXT,     role TEXT DEFAULT 'user' CHECK(role IN ('ceo','admin','manager','user')), created_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_login DATETIME);
     CREATE TABLE IF NOT EXISTS employees (id TEXT PRIMARY KEY, code TEXT UNIQUE NOT NULL, name TEXT NOT NULL, email TEXT UNIQUE NOT NULL, phone TEXT, position TEXT NOT NULL, department TEXT NOT NULL, salary REAL NOT NULL, hire_date TEXT NOT NULL, status TEXT DEFAULT 'active' CHECK(status IN ('active','inactive','vacation')), created_by TEXT REFERENCES users(id), created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
     CREATE TABLE IF NOT EXISTS attendance (id TEXT PRIMARY KEY, employee_id TEXT REFERENCES employees(id) ON DELETE CASCADE, date TEXT NOT NULL, check_in TEXT, check_out TEXT, status TEXT DEFAULT 'present' CHECK(status IN ('present','absent','late','vacation','holiday')), UNIQUE(employee_id, date));
     CREATE TABLE IF NOT EXISTS categories (id TEXT PRIMARY KEY, name TEXT UNIQUE NOT NULL, description TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);

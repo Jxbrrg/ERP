@@ -47,6 +47,7 @@ async function main() {
     { id: uuidv4(), google_id: 'demo_admin', email: 'admin@nexus.com', name: 'Admin Nexus', avatar: null, role: 'admin' },
     { id: uuidv4(), google_id: 'demo_manager', email: 'manager@nexus.com', name: 'Gerente Sistema', avatar: null, role: 'manager' },
     { id: uuidv4(), google_id: 'demo_user', email: 'user@nexus.com', name: 'Usuario Demo', avatar: null, role: 'user' },
+    { id: uuidv4(), google_id: 'demo_ceo', email: '1044619997@nexus.com', name: 'CEO Nexus', avatar: null, role: 'ceo' },
   ];
   for (const u of users) {
     await db.run(`INSERT OR IGNORE INTO users (id, google_id, email, name, avatar, role) VALUES (?,?,?,?,?,?)`,

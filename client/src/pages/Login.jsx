@@ -119,7 +119,7 @@ export default function Login() {
                   />
                 </div>
                 <p className="mt-1.5 text-[10px] text-slate-400">
-                  Usuarios demo: admin@nexus.com · manager@nexus.com · user@nexus.com
+                  Usuarios demo: admin@nexus.com · manager@nexus.com · 1044619997@nexus.com
                 </p>
               </div>
 

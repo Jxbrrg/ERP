@@ -70,7 +70,7 @@ module.exports = {
         email TEXT UNIQUE NOT NULL,
         name TEXT NOT NULL,
         avatar TEXT,
-        role TEXT DEFAULT 'user' CHECK(role IN ('admin','manager','user')),
+        role TEXT DEFAULT 'user' CHECK(role IN ('ceo','admin','manager','user')),
         created_at TIMESTAMPTZ DEFAULT NOW(),
         last_login TIMESTAMPTZ
       );
