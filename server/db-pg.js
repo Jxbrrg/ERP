@@ -56,7 +56,7 @@ async function doInit() {
       CREATE TABLE IF NOT EXISTS products (
         id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id),
         code TEXT NOT NULL, name TEXT NOT NULL, description TEXT,
-        category_id TEXT REFERENCES categories(id), unit_price REAL NOT NULL, cost_price REAL NOT NULL,
+        category TEXT, unit_price REAL NOT NULL, cost_price REAL NOT NULL,
         stock INTEGER NOT NULL DEFAULT 0, min_stock INTEGER DEFAULT 10, location TEXT, image TEXT,
         created_by TEXT REFERENCES users(id), created_at TIMESTAMPTZ DEFAULT NOW(),
         UNIQUE(company_id, code)
@@ -251,10 +251,10 @@ const seedData = async (companyId) => {
     const id = uuidv4();
     prodIds.push(id);
     const p = prods[i];
-    await pool.query(q(`INSERT INTO products (id,company_id,code,name,description,category_id,unit_price,cost_price,stock,min_stock,location,created_by)
+    await pool.query(q(`INSERT INTO products (id,company_id,code,name,description,category,unit_price,cost_price,stock,min_stock,location,created_by)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, [
       id, companyId, `PROD-${String(i + 1).padStart(3, '0')}`, p[0], p[1],
-      pick(catIds), p[2], p[3], p[4] + rand(-10, 20), rand(5, 20),
+      pick(cats), p[2], p[3], p[4] + rand(-10, 20), rand(5, 20),
       `Bodega-${String.fromCharCode(65 + rand(0,4))}-${rand(1,20)}`, createdBy
     ]));
   }

@@ -84,11 +84,11 @@ const seedData = (companyId) => {
   cats.forEach(c => { const id = uuidv4(); insertCat.run(id, companyId, c, `Categoría de ${c}`); catIds.push(id); });
 
   const prodIds = [];
-  const insertProd = db.prepare('INSERT OR IGNORE INTO products (id,company_id,code,name,description,category_id,unit_price,cost_price,stock,min_stock,location,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)');
+  const insertProd = db.prepare('INSERT OR IGNORE INTO products (id,company_id,code,name,description,category,unit_price,cost_price,stock,min_stock,location,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)');
   prods.forEach((p, i) => {
     const id = uuidv4();
     prodIds.push(id);
-    insertProd.run(id, companyId, `PROD-${String(i + 1).padStart(3, '0')}`, p[0], p[1], pick(catIds), p[2], p[3], p[4] + rand(-10, 20), rand(5, 20), `Bodega-${String.fromCharCode(65 + rand(0,4))}-${rand(1,20)}`, createdBy);
+    insertProd.run(id, companyId, `PROD-${String(i + 1).padStart(3, '0')}`, p[0], p[1], pick(cats), p[2], p[3], p[4] + rand(-10, 20), rand(5, 20), `Bodega-${String.fromCharCode(65 + rand(0,4))}-${rand(1,20)}`, createdBy);
   });
 
   const custIds = [];
@@ -174,7 +174,7 @@ const initDb = () => {
     CREATE TABLE IF NOT EXISTS employees (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), code TEXT NOT NULL, name TEXT NOT NULL, email TEXT NOT NULL, phone TEXT, position TEXT NOT NULL, department TEXT NOT NULL, salary REAL NOT NULL, hire_date TEXT NOT NULL, status TEXT DEFAULT 'active' CHECK(status IN ('active','inactive','vacation')), created_by TEXT REFERENCES users(id), created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(company_id, code), UNIQUE(company_id, email));
     CREATE TABLE IF NOT EXISTS attendance (id TEXT PRIMARY KEY, employee_id TEXT REFERENCES employees(id) ON DELETE CASCADE, date TEXT NOT NULL, check_in TEXT, check_out TEXT, status TEXT DEFAULT 'present' CHECK(status IN ('present','absent','late','vacation','holiday')), UNIQUE(employee_id, date));
     CREATE TABLE IF NOT EXISTS categories (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), name TEXT NOT NULL, description TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(company_id, name));
-    CREATE TABLE IF NOT EXISTS products (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), code TEXT NOT NULL, name TEXT NOT NULL, description TEXT, category_id TEXT REFERENCES categories(id), unit_price REAL NOT NULL, cost_price REAL NOT NULL, stock INTEGER NOT NULL DEFAULT 0, min_stock INTEGER DEFAULT 10, location TEXT, image TEXT, created_by TEXT REFERENCES users(id), created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(company_id, code));
+    CREATE TABLE IF NOT EXISTS products (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), code TEXT NOT NULL, name TEXT NOT NULL, description TEXT, category TEXT, unit_price REAL NOT NULL, cost_price REAL NOT NULL, stock INTEGER NOT NULL DEFAULT 0, min_stock INTEGER DEFAULT 10, location TEXT, image TEXT, created_by TEXT REFERENCES users(id), created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(company_id, code));
     CREATE TABLE IF NOT EXISTS customers (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), code TEXT NOT NULL, name TEXT NOT NULL, email TEXT, phone TEXT, address TEXT, type TEXT DEFAULT 'regular' CHECK(type IN ('regular','vip','corporate')), credit_limit REAL DEFAULT 0, notes TEXT, created_by TEXT REFERENCES users(id), created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(company_id, code));
     CREATE TABLE IF NOT EXISTS orders (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), code TEXT NOT NULL, customer_id TEXT REFERENCES customers(id), employee_id TEXT REFERENCES employees(id), total REAL NOT NULL, status TEXT DEFAULT 'pending' CHECK(status IN ('pending','confirmed','shipped','delivered','cancelled')), payment_method TEXT DEFAULT 'cash' CHECK(payment_method IN ('cash','card','transfer','credit')), notes TEXT, created_by TEXT REFERENCES users(id), created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(company_id, code));
     CREATE TABLE IF NOT EXISTS order_items (id TEXT PRIMARY KEY, order_id TEXT REFERENCES orders(id) ON DELETE CASCADE, product_id TEXT REFERENCES products(id), quantity INTEGER NOT NULL, unit_price REAL NOT NULL, subtotal REAL NOT NULL);

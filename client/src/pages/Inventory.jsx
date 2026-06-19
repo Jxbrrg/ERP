@@ -6,15 +6,12 @@ import { apiFetch } from '../api/fetch';
 
 export default function Inventory() {
   const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editProd, setEditProd] = useState(null);
 
   useEffect(() => {
     apiFetch(__API_URL__ + '/api/inventory')
       .then(r => r.json()).then(setProducts);
-    apiFetch(__API_URL__ + '/api/inventory/categories')
-      .then(r => r.json()).then(setCategories);
   }, []);
 
   const handleSave = async (form) => {
@@ -76,17 +73,17 @@ export default function Inventory() {
       <DataTable columns={columns} data={products} searchKeys={['name', 'code', 'category_name']} />
 
       {showModal && (
-        <ProductModal onClose={() => { setShowModal(false); setEditProd(null); }} onSave={handleSave} product={editProd} categories={categories} />
+        <ProductModal onClose={() => { setShowModal(false); setEditProd(null); }} onSave={handleSave} product={editProd} />
       )}
     </div>
   );
 }
 
-function ProductModal({ onClose, onSave, product, categories }) {
+function ProductModal({ onClose, onSave, product }) {
   const [form, setForm] = useState({
     name: product?.name || '',
     description: product?.description || '',
-    category_id: product?.category_id || categories[0]?.id || '',
+    category: product?.category || '',
     unit_price: product?.unit_price || '',
     cost_price: product?.cost_price || '',
     stock: product?.stock || 0,
@@ -105,13 +102,7 @@ function ProductModal({ onClose, onSave, product, categories }) {
         <div className="mt-4 grid grid-cols-2 gap-4">
           <Input label="Nombre" value={form.name} onChange={v => setForm({...form, name: v})} className="col-span-2" />
           <Input label="Descripción" value={form.description} onChange={v => setForm({...form, description: v})} className="col-span-2" />
-          <div>
-            <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Categoría</label>
-            <select value={form.category_id} onChange={e => setForm({...form, category_id: e.target.value})}
-              className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-400 dark:border-slate-600 dark:bg-slate-800 dark:text-white">
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </div>
+          <Input label="Categoría" value={form.category} onChange={v => setForm({...form, category: v})} />
           <Input label="Ubicación" value={form.location} onChange={v => setForm({...form, location: v})} />
           <Input label="Precio Venta" type="number" value={form.unit_price} onChange={v => setForm({...form, unit_price: v})} />
           <Input label="Costo" type="number" value={form.cost_price} onChange={v => setForm({...form, cost_price: v})} />
