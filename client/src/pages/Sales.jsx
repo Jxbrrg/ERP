@@ -42,7 +42,10 @@ export default function Sales() {
       const colors = { pending: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400', confirmed: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400', shipped: 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400', delivered: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400', cancelled: 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' };
       return <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${colors[r.status] || colors.pending}`}>{r.status}</span>;
     }},
-    { key: 'payment_method', label: 'Pago' },
+    { key: 'payment_method', label: 'Pago', render: r => {
+      const labels = { cash: 'Efectivo', card: 'Tarjeta', transfer: 'Transferencia', credit: 'Crédito', nequi: 'Nequi' };
+      return <span>{labels[r.payment_method] || r.payment_method}</span>;
+    }},
     { key: 'created_at', label: 'Fecha', render: r => new Date(r.created_at).toLocaleDateString('es-CO') },
     { key: 'actions', label: '', render: r => (
       <div className="flex gap-1" onClick={e => e.stopPropagation()}>
@@ -88,6 +91,8 @@ export default function Sales() {
 function OrderModal({ onClose, onSave, customers, employees, products }) {
   const [items, setItems] = useState([{ product_id: '', quantity: 1, unit_price: 0 }]);
   const [form, setForm] = useState({ customer_id: '', employee_id: '', payment_method: 'cash', notes: '' });
+
+  const paymentLabels = { cash: 'Efectivo', card: 'Tarjeta', transfer: 'Transferencia', credit: 'Crédito', nequi: 'Nequi' };
 
   const addItem = () => setItems([...items, { product_id: '', quantity: 1, unit_price: 0 }]);
   
@@ -137,13 +142,17 @@ function OrderModal({ onClose, onSave, customers, employees, products }) {
             <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Método Pago</label>
             <select value={form.payment_method} onChange={e => setForm({...form, payment_method: e.target.value})}
               className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-white">
-              <option value="cash">Efectivo</option>
-              <option value="card">Tarjeta</option>
-              <option value="transfer">Transferencia</option>
-              <option value="credit">Crédito</option>
+              {Object.entries(paymentLabels).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
             </select>
           </div>
-          <div />
+          <div className="col-span-2">
+            <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Descripción / Notas</label>
+            <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})}
+              className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-400 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+              rows={2} placeholder="Notas adicionales..." />
+          </div>
         </div>
 
         <hr className="my-4 border-slate-200 dark:border-slate-700" />
@@ -208,8 +217,9 @@ function OrderDetail({ orderId, onClose }) {
               <p><strong>Cliente:</strong> {order.customer_name}</p>
               <p><strong>Vendedor:</strong> {order.employee_name}</p>
               <p><strong>Estado:</strong> {order.status}</p>
-              <p><strong>Pago:</strong> {order.payment_method}</p>
+              <p><strong>Pago:</strong> {{cash:'Efectivo',card:'Tarjeta',transfer:'Transferencia',credit:'Crédito',nequi:'Nequi'}[order.payment_method] || order.payment_method}</p>
               <p><strong>Total:</strong> ${Number(order.total).toLocaleString('es-CO')}</p>
+              {order.notes && <p><strong>Notas:</strong> {order.notes}</p>}
               <hr className="my-3 border-slate-200 dark:border-slate-700" />
               <p className="font-semibold text-slate-700 dark:text-slate-300">Productos:</p>
               {order.items?.map((it, i) => (

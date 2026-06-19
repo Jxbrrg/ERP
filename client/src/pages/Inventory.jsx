@@ -88,7 +88,6 @@ function ProductModal({ onClose, onSave, product }) {
     cost_price: product?.cost_price || '',
     stock: product?.stock || 0,
     min_stock: product?.min_stock || 10,
-    location: product?.location || ''
   });
 
   return (
@@ -103,7 +102,6 @@ function ProductModal({ onClose, onSave, product }) {
           <Input label="Nombre" value={form.name} onChange={v => setForm({...form, name: v})} className="col-span-2" />
           <Input label="Descripción" value={form.description} onChange={v => setForm({...form, description: v})} className="col-span-2" />
           <Input label="Categoría" value={form.category} onChange={v => setForm({...form, category: v})} />
-          <Input label="Ubicación" value={form.location} onChange={v => setForm({...form, location: v})} />
           <Input label="Precio Venta" type="number" value={form.unit_price} onChange={v => setForm({...form, unit_price: v})} />
           <Input label="Costo" type="number" value={form.cost_price} onChange={v => setForm({...form, cost_price: v})} />
           <Input label="Stock" type="number" value={form.stock} onChange={v => setForm({...form, stock: parseInt(v) || 0})} />

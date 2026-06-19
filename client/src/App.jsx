@@ -11,7 +11,7 @@ import Employees from './pages/Employees';
 import Inventory from './pages/Inventory';
 import Sales from './pages/Sales';
 import Accounting from './pages/Accounting';
-import CRM from './pages/CRM';
+import Clientes from './pages/Clientes';
 import Projects from './pages/Projects';
 import Admin from './pages/Admin';
 import Settings from './pages/Settings';
@@ -58,7 +58,7 @@ export default function App() {
                 <Route path="/inventory" element={<Inventory />} />
                 <Route path="/sales" element={<Sales />} />
                 <Route path="/accounting" element={<Accounting />} />
-                <Route path="/crm" element={<CRM />} />
+                <Route path="/clientes" element={<Clientes />} />
                 <Route path="/projects" element={<Projects />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/settings" element={<Settings />} />

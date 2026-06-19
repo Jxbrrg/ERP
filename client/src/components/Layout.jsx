@@ -16,7 +16,7 @@ const customerMenu = [
   { path: '/inventory', icon: Package, label: 'Inventario', color: 'from-emerald-500 to-teal-500' },
   { path: '/sales', icon: ShoppingCart, label: 'Ventas', color: 'from-orange-500 to-amber-500' },
   { path: '/accounting', icon: BarChart3, label: 'Contabilidad', color: 'from-rose-500 to-pink-500' },
-  { path: '/crm', icon: Target, label: 'CRM', color: 'from-violet-500 to-purple-500' },
+  { path: '/clientes', icon: Target, label: 'Clientes', color: 'from-violet-500 to-purple-500' },
   { path: '/projects', icon: FolderKanban, label: 'Proyectos', color: 'from-sky-500 to-indigo-500' },
   { path: '/settings', icon: Settings2, label: 'Configuración', color: 'from-slate-500 to-slate-400' },
 ];

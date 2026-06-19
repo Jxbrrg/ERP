@@ -73,7 +73,7 @@ async function doInit() {
         code TEXT NOT NULL, customer_id TEXT REFERENCES customers(id),
         employee_id TEXT REFERENCES employees(id), total REAL NOT NULL,
         status TEXT DEFAULT 'pending' CHECK(status IN ('pending','confirmed','shipped','delivered','cancelled')),
-        payment_method TEXT DEFAULT 'cash' CHECK(payment_method IN ('cash','card','transfer','credit')),
+        payment_method TEXT DEFAULT 'cash' CHECK(payment_method IN ('cash','card','transfer','credit','nequi')),
         notes TEXT, created_by TEXT REFERENCES users(id), created_at TIMESTAMPTZ DEFAULT NOW(),
         UNIQUE(company_id, code)
       );
