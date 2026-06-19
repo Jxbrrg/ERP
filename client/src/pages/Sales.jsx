@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { apiFetch } from '../api/fetch';
 import { motion } from 'framer-motion';
 import { Plus, Eye, ShoppingCart } from 'lucide-react';
 import DataTable from '../components/DataTable';
@@ -12,24 +13,24 @@ export default function Sales() {
   const [products, setProducts] = useState([]);
 
   const loadOrders = () =>
-    fetch(__API_URL__ + '/api/sales', { credentials: 'include' })
+    apiFetch(__API_URL__ + '/api/sales')
       .then(r => r.json()).then(setOrders);
 
   useEffect(() => {
     loadOrders();
-    fetch(__API_URL__ + '/api/employees', { credentials: 'include' }).then(r => r.json()).then(setEmployees);
-    fetch(__API_URL__ + '/api/crm', { credentials: 'include' }).then(r => r.json()).then(setCustomers);
-    fetch(__API_URL__ + '/api/inventory', { credentials: 'include' }).then(r => r.json()).then(setProducts);
+    apiFetch(__API_URL__ + '/api/employees').then(r => r.json()).then(setEmployees);
+    apiFetch(__API_URL__ + '/api/crm').then(r => r.json()).then(setCustomers);
+    apiFetch(__API_URL__ + '/api/inventory').then(r => r.json()).then(setProducts);
   }, []);
 
   const handleSave = async (form) => {
-    await fetch(__API_URL__ + '/api/sales', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+    await apiFetch(__API_URL__ + '/api/sales', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
     await loadOrders();
     setShowModal(false);
   };
 
   const updateStatus = async (id, status) => {
-    await fetch(`${__API_URL__}/api/sales/${id}`, { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
+    await apiFetch(`${__API_URL__}/api/sales/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
     await loadOrders();
   };
 
@@ -189,7 +190,7 @@ function OrderDetail({ orderId, onClose }) {
   const [order, setOrder] = useState(null);
 
   useEffect(() => {
-    fetch(`${__API_URL__}/api/sales/${orderId}`, { credentials: 'include' })
+    apiFetch(`${__API_URL__}/api/sales/${orderId}`)
       .then(r => r.json()).then(setOrder);
   }, [orderId]);
 

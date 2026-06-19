@@ -1,15 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { KeyRound } from 'lucide-react';
 import useAuthStore from '../store/authStore';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { apiFetch } from '../api/fetch';
 
 export default function Login() {
-  const { login } = useAuthStore();
+  const { login, setUser } = useAuthStore();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const token = searchParams.get('token');
+    if (token) {
+      localStorage.setItem('synex_token', token);
+      apiFetch(__API_URL__ + '/auth/me')
+        .then(r => r.json())
+        .then(user => { setUser(user); navigate('/dashboard'); })
+        .catch(() => {});
+    }
+  }, []);
 
   const handleDemoLogin = async (e) => {
     e.preventDefault();

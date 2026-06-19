@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Edit2, Trash2, UserCheck, UserX } from 'lucide-react';
 import DataTable from '../components/DataTable';
+import { apiFetch } from '../api/fetch';
 
 export default function Employees() {
   const [employees, setEmployees] = useState([]);
@@ -10,7 +11,7 @@ export default function Employees() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(__API_URL__ + '/api/employees', { credentials: 'include' })
+    apiFetch(__API_URL__ + '/api/employees')
       .then(r => r.json()).then(d => { setEmployees(d); setLoading(false); });
   }, []);
 
@@ -19,8 +20,8 @@ export default function Employees() {
       ? `${__API_URL__}/api/employees/${editEmp.id}`
       : __API_URL__ + '/api/employees';
     const method = editEmp ? 'PUT' : 'POST';
-    await fetch(url, { method, credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
-    const res = await fetch(__API_URL__ + '/api/employees', { credentials: 'include' });
+    await apiFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+    const res = await apiFetch(__API_URL__ + '/api/employees');
     setEmployees(await res.json());
     setShowModal(false);
     setEditEmp(null);
@@ -28,7 +29,7 @@ export default function Employees() {
 
   const handleDelete = async (id) => {
     if (!confirm('¿Eliminar empleado?')) return;
-    await fetch(`${__API_URL__}/api/employees/${id}`, { method: 'DELETE', credentials: 'include' });
+    await apiFetch(`${__API_URL__}/api/employees/${id}`, { method: 'DELETE' });
     setEmployees(employees.filter(e => e.id !== id));
   };
 

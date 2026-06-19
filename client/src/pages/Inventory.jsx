@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Edit2, Trash2, AlertTriangle, Package } from 'lucide-react';
 import DataTable from '../components/DataTable';
+import { apiFetch } from '../api/fetch';
 
 export default function Inventory() {
   const [products, setProducts] = useState([]);
@@ -10,17 +11,17 @@ export default function Inventory() {
   const [editProd, setEditProd] = useState(null);
 
   useEffect(() => {
-    fetch(__API_URL__ + '/api/inventory', { credentials: 'include' })
+    apiFetch(__API_URL__ + '/api/inventory')
       .then(r => r.json()).then(setProducts);
-    fetch(__API_URL__ + '/api/inventory/categories', { credentials: 'include' })
+    apiFetch(__API_URL__ + '/api/inventory/categories')
       .then(r => r.json()).then(setCategories);
   }, []);
 
   const handleSave = async (form) => {
     const url = editProd ? `${__API_URL__}/api/inventory/${editProd.id}` : __API_URL__ + '/api/inventory';
     const method = editProd ? 'PUT' : 'POST';
-    await fetch(url, { method, credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
-    const res = await fetch(__API_URL__ + '/api/inventory', { credentials: 'include' });
+    await apiFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+    const res = await apiFetch(__API_URL__ + '/api/inventory');
     setProducts(await res.json());
     setShowModal(false);
     setEditProd(null);
@@ -28,7 +29,7 @@ export default function Inventory() {
 
   const handleDelete = async (id) => {
     if (!confirm('¿Eliminar producto?')) return;
-    await fetch(`${__API_URL__}/api/inventory/${id}`, { method: 'DELETE', credentials: 'include' });
+    await apiFetch(`${__API_URL__}/api/inventory/${id}`, { method: 'DELETE' });
     setProducts(products.filter(p => p.id !== id));
   };
 

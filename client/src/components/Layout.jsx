@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
+import { apiFetch } from '../api/fetch';
 
 const menuItems = [
   { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', color: 'from-indigo-500 to-purple-500' },
@@ -125,14 +126,14 @@ export function Navbar({ setMobileOpen }) {
   const [showUser, setShowUser] = useState(false);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/notifications', { credentials: 'include' })
+    apiFetch(__API_URL__ + '/api/notifications')
       .then(r => r.json())
-      .then(setNotifs)
+      .then(r => Array.isArray(r) ? setNotifs(r) : setNotifs([]))
       .catch(() => {});
   }, []);
 
   const markRead = async (id) => {
-    await fetch(`http://localhost:5000/api/notifications/${id}/read`, { method: 'POST', credentials: 'include' });
+    await apiFetch(__API_URL__ + `/api/notifications/${id}/read`, { method: 'POST' });
     setNotifs(notifs.map(n => n.id === id ? { ...n, read: 1 } : n));
   };
 

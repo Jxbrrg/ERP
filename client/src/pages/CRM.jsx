@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { apiFetch } from '../api/fetch';
 import { motion } from 'framer-motion';
 import { Plus, Phone, Mail, MapPin, Edit2, Trash2, MessageSquare } from 'lucide-react';
 import DataTable from '../components/DataTable';
@@ -10,7 +11,7 @@ export default function CRM() {
   const [selectedCust, setSelectedCust] = useState(null);
 
   const load = () =>
-    fetch(__API_URL__ + '/api/crm', { credentials: 'include' })
+    apiFetch(__API_URL__ + '/api/crm')
       .then(r => r.json()).then(setCustomers);
 
   useEffect(() => { load(); }, []);
@@ -18,7 +19,7 @@ export default function CRM() {
   const handleSave = async (form) => {
     const url = editCust ? `${__API_URL__}/api/crm/${editCust.id}` : __API_URL__ + '/api/crm';
     const method = editCust ? 'PUT' : 'POST';
-    await fetch(url, { method, credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+    await apiFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
     load();
     setShowModal(false);
     setEditCust(null);
@@ -26,7 +27,7 @@ export default function CRM() {
 
   const handleDelete = async (id) => {
     if (!confirm('¿Eliminar cliente?')) return;
-    await fetch(`${__API_URL__}/api/crm/${id}`, { method: 'DELETE', credentials: 'include' });
+    await apiFetch(`${__API_URL__}/api/crm/${id}`, { method: 'DELETE' });
     setCustomers(customers.filter(c => c.id !== id));
   };
 
@@ -127,7 +128,7 @@ function CustomerDetail({ customer, onClose }) {
   const [detail, setDetail] = useState(null);
 
   useEffect(() => {
-    fetch(`${__API_URL__}/api/crm/${customer.id}`, { credentials: 'include' })
+    apiFetch(`${__API_URL__}/api/crm/${customer.id}`)
       .then(r => r.json()).then(setDetail);
   }, [customer.id]);
 

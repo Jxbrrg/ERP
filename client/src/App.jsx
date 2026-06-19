@@ -31,7 +31,7 @@ export default function App() {
 
   useEffect(() => {
     checkAuth();
-    if (localStorage.getItem('nexus-dark') === 'true') {
+    if (localStorage.getItem('synex-dark') === 'true') {
       document.documentElement.classList.add('dark');
     }
   }, []);

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, FolderKanban, CheckCircle2, Clock, AlertCircle, ListTodo } from 'lucide-react';
 import DataTable from '../components/DataTable';
+import { apiFetch } from '../api/fetch';
 
 const statusColors = {
   planning: 'bg-slate-100 text-slate-700 dark:bg-slate-500/20 dark:text-slate-400',
@@ -19,19 +20,19 @@ export default function Projects() {
   const [customers, setCustomers] = useState([]);
 
   const load = () =>
-    fetch(__API_URL__ + '/api/projects', { credentials: 'include' })
+    apiFetch(__API_URL__ + '/api/projects')
       .then(r => r.json()).then(setProjects);
 
   useEffect(() => {
     load();
-    fetch(__API_URL__ + '/api/crm', { credentials: 'include' })
+    apiFetch(__API_URL__ + '/api/crm')
       .then(r => r.json()).then(setCustomers);
   }, []);
 
   const handleSave = async (form) => {
     const url = editProj ? `${__API_URL__}/api/projects/${editProj.id}` : __API_URL__ + '/api/projects';
     const method = editProj ? 'PUT' : 'POST';
-    await fetch(url, { method, credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+    await apiFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
     load();
     setShowModal(false);
     setEditProj(null);
@@ -158,19 +159,19 @@ function ProjectDetail({ project, onClose }) {
   const [newTask, setNewTask] = useState({ name: '', assigned_to: '', priority: 'medium', due_date: '' });
 
   const loadDetail = () =>
-    fetch(`${__API_URL__}/api/projects/${project.id}`, { credentials: 'include' })
+    apiFetch(`${__API_URL__}/api/projects/${project.id}`)
       .then(r => r.json()).then(setDetail);
 
   useEffect(() => {
     loadDetail();
-    fetch(__API_URL__ + '/api/employees', { credentials: 'include' })
+    apiFetch(__API_URL__ + '/api/employees')
       .then(r => r.json()).then(setEmployees);
   }, [project.id]);
 
   const addTask = async () => {
     if (!newTask.name) return;
-    await fetch(`${__API_URL__}/api/projects/${project.id}/tasks`, {
-      method: 'POST', credentials: 'include',
+    await apiFetch(`${__API_URL__}/api/projects/${project.id}/tasks`, {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newTask)
     });
@@ -179,8 +180,8 @@ function ProjectDetail({ project, onClose }) {
   };
 
   const updateTask = async (id, status) => {
-    await fetch(`${__API_URL__}/api/projects/tasks/${id}`, {
-      method: 'PUT', credentials: 'include',
+    await apiFetch(`${__API_URL__}/api/projects/tasks/${id}`, {
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status })
     });

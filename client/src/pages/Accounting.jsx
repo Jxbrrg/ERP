@@ -1,3 +1,4 @@
+import { apiFetch } from '../api/fetch';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, TrendingUp, TrendingDown, DollarSign, Wallet } from 'lucide-react';
@@ -12,16 +13,16 @@ export default function Accounting() {
   const [showModal, setShowModal] = useState(false);
 
   const load = () => {
-    fetch(__API_URL__ + '/api/accounting', { credentials: 'include' })
+    apiFetch('/api/accounting')
       .then(r => r.json()).then(setTxns);
-    fetch(__API_URL__ + '/api/accounting/summary', { credentials: 'include' })
+    apiFetch('/api/accounting/summary')
       .then(r => r.json()).then(setSummary);
   };
 
   useEffect(load, []);
 
   const handleSave = async (form) => {
-    await fetch(__API_URL__ + '/api/accounting', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+    await apiFetch('/api/accounting', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
     load();
     setShowModal(false);
   };

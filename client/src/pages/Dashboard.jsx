@@ -1,3 +1,4 @@
+import { apiFetch } from '../api/fetch';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -15,7 +16,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(__API_URL__ + '/api/dashboard', { credentials: 'include' })
+    apiFetch(__API_URL__ + '/api/dashboard')
       .then(r => r.json())
       .then(d => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
