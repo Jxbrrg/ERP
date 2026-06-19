@@ -31,13 +31,13 @@ passport.use(new GoogleStrategy({
     }
 
     if (user) {
-      await db.run('UPDATE users SET google_id = ?, avatar = ?, last_login = NOW() WHERE id = ?',
+      await db.run('UPDATE users SET google_id = ?, avatar = ?, last_login = CURRENT_TIMESTAMP WHERE id = ?',
         profile.id, profile.photos?.[0]?.value || null, user.id);
       user = await db.get('SELECT * FROM users WHERE id = ?', user.id);
     } else {
       const id = uuidv4();
       await db.run(`INSERT INTO users (id, google_id, email, name, avatar, role, last_login)
-        VALUES (?, ?, ?, ?, ?, 'user', NOW())`,
+        VALUES (?, ?, ?, ?, ?, 'user', CURRENT_TIMESTAMP)`,
         id, profile.id, email, profile.displayName, profile.photos?.[0]?.value || null);
       user = await db.get('SELECT * FROM users WHERE id = ?', id);
     }
