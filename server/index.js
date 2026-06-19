@@ -18,6 +18,12 @@ app.use(cookieSession({
   sameSite: 'lax',
   secure: isVercel,
 }));
+app.use((req, res, next) => {
+  if (req.session && !req.session.regenerate) {
+    req.session.regenerate = (cb) => { if (cb) cb(); };
+  }
+  next();
+});
 app.use(passport.initialize());
 app.use(passport.session());
 
