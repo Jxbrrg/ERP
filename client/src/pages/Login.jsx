@@ -14,7 +14,6 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showSetPassword, setShowSetPassword] = useState(false);
-  const [spName, setSpName] = useState('');
   const [spPassword, setSpPassword] = useState('');
   const [spMsg, setSpMsg] = useState('');
 
@@ -24,12 +23,12 @@ export default function Login() {
     try {
       const r = await apiFetch(__API_URL__ + '/auth/set-password', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, name: spName, password: spPassword })
+        body: JSON.stringify({ email, password: spPassword })
       });
       const d = await r.json();
       if (!r.ok) { setSpMsg(d.error); return; }
       setSpMsg('¡Contraseña establecida! Ahora inicia sesión.');
-      setTimeout(() => { setShowSetPassword(false); setSpMsg(''); setSpName(''); setSpPassword(''); }, 2000);
+      setTimeout(() => { setShowSetPassword(false); setSpMsg(''); setSpPassword(''); }, 2000);
     } catch { setSpMsg('Error de conexión'); }
     setLoading(false);
   };
@@ -180,11 +179,8 @@ export default function Login() {
             {showSetPassword && (
               <form onSubmit={handleSetPassword} className="mt-4 space-y-3 border-t border-slate-200 pt-4 dark:border-slate-700">
                 <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                  Para usuarios registrados antes de la actualización. Ingresa tu email, nombre y nueva contraseña.
+                  Ingresa tu nueva contraseña para {email}
                 </p>
-                <input type="text" value={spName} onChange={e => setSpName(e.target.value)}
-                  placeholder="Tu nombre completo"
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-400 dark:border-slate-600 dark:bg-slate-800 dark:text-white" required />
                 <input type="password" value={spPassword} onChange={e => setSpPassword(e.target.value)}
                   placeholder="Nueva contraseña"
                   className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-400 dark:border-slate-600 dark:bg-slate-800 dark:text-white" required minLength={6} />
@@ -192,7 +188,7 @@ export default function Login() {
                   className="w-full rounded-xl bg-emerald-500 py-2 text-sm font-semibold text-white hover:bg-emerald-600 active:scale-[0.98] disabled:opacity-70">
                   {loading ? 'Guardando...' : 'Establecer Contraseña'}
                 </button>
-                {spMsg && <p className="text-center text-xs font-medium text-emerald-500">{spMsg}</p>}
+                {spMsg && <p className="text-center text-xs font-medium" style={{color: spMsg.includes('Error') ? '#ef4444' : '#10b981'}}>{spMsg}</p>}
               </form>
             )}
 
