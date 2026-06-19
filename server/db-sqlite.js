@@ -221,8 +221,9 @@ const initDb = () => {
       { google_id: 'demo_user', email: 'user@synex.com', name: 'Usuario Demo', role: 'user' },
       { google_id: 'demo_ceo', email: 'ceo@synex.com', name: 'CEO Synex', role: 'superadmin' },
     ];
-    const ins = db.prepare('INSERT OR IGNORE INTO users (id, company_id, google_id, email, name, avatar, role) VALUES (?,?,?,?,?,?,?)');
-    for (const u of users) ins.run(uuidv4(), companyId, u.google_id, u.email, u.name, null, u.role);
+    const demoPass = require('crypto').pbkdf2Sync('admin123', 'demo', 1000, 64, 'sha512').toString('hex');
+    const ins = db.prepare('INSERT OR IGNORE INTO users (id, company_id, google_id, email, name, avatar, role, password_hash) VALUES (?,?,?,?,?,?,?,?)');
+    for (const u of users) ins.run(uuidv4(), companyId, u.google_id, u.email, u.name, null, u.role, 'demo:' + demoPass);
     try { seedData(companyId); } catch (e) { console.error('Seed extra falló:', e.message); }
   }
 };

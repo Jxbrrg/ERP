@@ -64,6 +64,20 @@ app.post('/auth/login', ah(async (req, res) => {
 }));
 
 // === Registration ===
+// === Password reset for legacy users (registered before password auth) ===
+app.post('/auth/set-password', ah(async (req, res) => {
+  const { email, name, password } = req.body;
+  if (!email || !name || !password) return res.status(400).json({ error: 'Email, nombre y contraseña requeridos' });
+  const user = await db.get('SELECT * FROM users WHERE email = ?', email);
+  if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+  if (user.name !== name) return res.status(401).json({ error: 'Nombre no coincide con el registro' });
+  const crypto = require('crypto');
+  const salt = crypto.randomBytes(16).toString('hex');
+  const passwordHash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+  await db.run('UPDATE users SET password_hash = ? WHERE id = ?', salt + ':' + passwordHash, user.id);
+  res.json({ success: true, message: 'Contraseña establecida. Ahora puedes iniciar sesión.' });
+}));
+
 app.post('/auth/register', ah(async (req, res) => {
   const { companyName, name, email, password } = req.body;
   if (!companyName || !name || !email || !password) {
