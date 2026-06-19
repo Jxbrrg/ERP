@@ -26,12 +26,10 @@ function SidebarView({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
   const sidebarContent = (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-3 px-4 py-5">
-        <div className="gradient-primary rounded-xl p-2.5 glow-primary">
-          <Shield className="h-6 w-6 text-white" />
-        </div>
+        <img src="/SynexERP.png" alt="SynexERP" className="h-11 w-11 rounded-xl" />
         {!collapsed && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col">
-            <span className="text-lg font-bold tracking-tight">NEXUS</span>
+            <span className="text-lg font-bold tracking-tight">SynexERP</span>
             <span className="text-[10px] uppercase tracking-widest text-indigo-400">Enterprise ERP</span>
           </motion.div>
         )}
@@ -146,7 +144,7 @@ export function Navbar({ setMobileOpen }) {
         </button>
         <div className="hidden sm:block">
           <h1 className="text-sm font-semibold text-slate-800 dark:text-white">
-            {user?.name ? `Bienvenido, ${user.name.split(' ')[0]}` : 'NEXUS ERP'}
+            {user?.name ? `Bienvenido, ${user.name.split(' ')[0]}` : 'SynexERP'}
           </h1>
           <p className="text-[11px] text-slate-400 dark:text-slate-500">
             {new Date().toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}

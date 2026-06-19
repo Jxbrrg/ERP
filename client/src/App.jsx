@@ -21,7 +21,7 @@ function Loader() {
   return (
     <div className="flex flex-col items-center gap-4">
       <div className="h-12 w-12 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent" />
-      <p className="text-sm text-slate-500 dark:text-slate-400">Cargando NEXUS...</p>
+      <p className="text-sm text-slate-500 dark:text-slate-400">Cargando SynexERP...</p>
     </div>
   );
 }

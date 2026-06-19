@@ -60,7 +60,7 @@ const seedData = () => {
   nombres.forEach((n, i) => {
     const id = uuidv4();
     employeeIds.push(id);
-    insertEmp.run(id, `EMP-${String(i + 1).padStart(3, '0')}`, n, `${n.toLowerCase().replace(' ','.')}@nexus.com`,
+    insertEmp.run(id, `EMP-${String(i + 1).padStart(3, '0')}`, n, `${n.toLowerCase().replace(' ','.')}@synexerp.com`,
       `300${rand(1000000, 9999999)}`, pick(cargos), pick(departamentos),
       rand(2000000, 15000000), daysAgo(rand(30, 730)), pick(['active','active','active','active','active','inactive','vacation']), createdBy);
   });
@@ -181,10 +181,10 @@ const initDb = () => {
   if (userCount.c === 0) {
     console.log('Creating demo users...');
     const users = [
-      { id: uuidv4(), google_id: 'demo_admin', email: 'admin@nexus.com', name: 'Admin Nexus', avatar: null, role: 'admin' },
-      { id: uuidv4(), google_id: 'demo_manager', email: 'manager@nexus.com', name: 'Gerente Sistema', avatar: null, role: 'manager' },
-      { id: uuidv4(), google_id: 'demo_user', email: 'user@nexus.com', name: 'Usuario Demo', avatar: null, role: 'user' },
-      { id: uuidv4(), google_id: 'demo_ceo', email: '1044619997@nexus.com', name: 'CEO Nexus', avatar: null, role: 'ceo' },
+      { id: uuidv4(), google_id: 'demo_admin', email: 'admin@synexerp.com', name: 'Admin Nexus', avatar: null, role: 'admin' },
+      { id: uuidv4(), google_id: 'demo_manager', email: 'manager@synexerp.com', name: 'Gerente Sistema', avatar: null, role: 'manager' },
+      { id: uuidv4(), google_id: 'demo_user', email: 'user@synexerp.com', name: 'Usuario Demo', avatar: null, role: 'user' },
+      { id: uuidv4(), google_id: 'demo_ceo', email: '1044619997@synexerp.com', name: 'CEO Nexus', avatar: null, role: 'ceo' },
     ];
     const ins = db.prepare('INSERT OR IGNORE INTO users (id, google_id, email, name, avatar, role) VALUES (?,?,?,?,?,?)');
     for (const u of users) ins.run(u.id, u.google_id, u.email, u.name, u.avatar, u.role);

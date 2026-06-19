@@ -75,7 +75,7 @@ app.post('/auth/logout', (req, res) => {
 app.post('/auth/demo', ah(async (req, res) => {
   const { email } = req.body;
   const user = await db.get('SELECT * FROM users WHERE email = ?', email);
-  if (!user) return res.status(401).json({ error: 'No encontrado. Usa: admin@nexus.com, 1044619997@nexus.com' });
+  if (!user) return res.status(401).json({ error: 'No encontrado. Usa: admin@synexerp.com, 1044619997@synexerp.com' });
   const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '1d' });
   res.setHeader('Set-Cookie', cookieOpts.replace('TOKEN', token));
   req.user = user;

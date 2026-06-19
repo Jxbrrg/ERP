@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Shield, KeyRound } from 'lucide-react';
+import { KeyRound } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import { useNavigate } from 'react-router-dom';
 
@@ -42,11 +42,9 @@ export default function Login() {
           className="hidden flex-1 lg:block"
         >
           <div className="flex items-center gap-4 mb-6">
-            <div className="rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 p-3 shadow-2xl shadow-indigo-500/30">
-              <Shield className="h-10 w-10 text-white" />
-            </div>
+            <img src="/SynexERP.png" alt="SynexERP" className="h-14 w-14 rounded-2xl" />
             <div>
-              <h1 className="text-4xl font-bold text-white">NEXUS</h1>
+              <h1 className="text-4xl font-bold text-white">SynexERP</h1>
               <p className="text-sm text-indigo-300/80">Enterprise Resource Planning</p>
             </div>
           </div>
@@ -87,9 +85,7 @@ export default function Login() {
         >
           <div className="glass rounded-3xl p-8 shadow-2xl dark:bg-slate-900/80">
             <div className="mb-8 text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/30">
-                <Shield className="h-8 w-8 text-white" />
-              </div>
+              <img src="/SynexERP.png" alt="SynexERP" className="mx-auto mb-4 h-16 w-16 rounded-2xl" />
               <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Iniciar Sesión</h2>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 Accede a tu panel de control empresarial
@@ -113,13 +109,13 @@ export default function Login() {
                     type="email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    placeholder="admin@nexus.com"
+                    placeholder="admin@synexerp.com"
                     className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none transition-all focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:focus:border-indigo-500"
                     required
                   />
                 </div>
                 <p className="mt-1.5 text-[10px] text-slate-400">
-                  Usuarios demo: admin@nexus.com · manager@nexus.com · 1044619997@nexus.com
+                  Usuarios demo: admin@synexerp.com · manager@synexerp.com · 1044619997@synexerp.com
                 </p>
               </div>
 

@@ -44,10 +44,10 @@ async function main() {
   console.log('Tables created');
 
   const users = [
-    { id: uuidv4(), google_id: 'demo_admin', email: 'admin@nexus.com', name: 'Admin Nexus', avatar: null, role: 'admin' },
-    { id: uuidv4(), google_id: 'demo_manager', email: 'manager@nexus.com', name: 'Gerente Sistema', avatar: null, role: 'manager' },
-    { id: uuidv4(), google_id: 'demo_user', email: 'user@nexus.com', name: 'Usuario Demo', avatar: null, role: 'user' },
-    { id: uuidv4(), google_id: 'demo_ceo', email: '1044619997@nexus.com', name: 'CEO Nexus', avatar: null, role: 'ceo' },
+    { id: uuidv4(), google_id: 'demo_admin', email: 'admin@synexerp.com', name: 'Admin Nexus', avatar: null, role: 'admin' },
+    { id: uuidv4(), google_id: 'demo_manager', email: 'manager@synexerp.com', name: 'Gerente Sistema', avatar: null, role: 'manager' },
+    { id: uuidv4(), google_id: 'demo_user', email: 'user@synexerp.com', name: 'Usuario Demo', avatar: null, role: 'user' },
+    { id: uuidv4(), google_id: 'demo_ceo', email: '1044619997@synexerp.com', name: 'CEO Nexus', avatar: null, role: 'ceo' },
   ];
   for (const u of users) {
     await db.run(`INSERT OR IGNORE INTO users (id, google_id, email, name, avatar, role) VALUES (?,?,?,?,?,?)`,
@@ -60,7 +60,7 @@ async function main() {
     const id = uuidv4();
     const code = `EMP-${String(i + 1).padStart(3, '0')}`;
     await db.run(`INSERT OR IGNORE INTO employees (id,code,name,email,phone,position,department,salary,hire_date,status,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?) `,
-      id, code, n, `${n.toLowerCase().replace(' ','.')}@nexus.com`,
+      id, code, n, `${n.toLowerCase().replace(' ','.')}@synexerp.com`,
       `300${rand(1000000, 9999999)}`, pick(cargos), pick(departamentos),
       rand(2000000, 15000000), daysAgo(rand(30, 730)), pick(['active','active','active','active','active','inactive','vacation']),
       users[0].id);
