@@ -18,14 +18,17 @@ app.use(cookieSession({
   sameSite: 'lax',
   secure: isVercel,
 }));
-app.use((req, res, next) => {
-  if (req.session && !req.session.regenerate) {
-    req.session.regenerate = (cb) => { if (cb) cb(); };
+app.use(passport.initialize());
+app.use(passport.session());
+app.use(async (req, res, next) => {
+  if (!req.user && req.session && req.session.userId) {
+    try {
+      const user = await db.get('SELECT * FROM users WHERE id = ?', req.session.userId);
+      if (user) req.user = user;
+    } catch (_) {}
   }
   next();
 });
-app.use(passport.initialize());
-app.use(passport.session());
 
 const ah = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
@@ -57,7 +60,7 @@ app.post('/auth/demo', ah(async (req, res) => {
   const { email } = req.body;
   const user = await db.get('SELECT * FROM users WHERE email = ?', email);
   if (!user) return res.status(401).json({ error: 'No encontrado. Usa: admin@nexus.com, 1044619997@nexus.com' });
-  req.session.passport = { user: user.id };
+  req.session.userId = user.id;
   req.user = user;
   res.json(user);
 }));
