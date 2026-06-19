@@ -19,7 +19,7 @@ async function authMiddleware(req, res, next) {
   if (auth && auth.startsWith('Bearer ')) {
     try {
       const decoded = jwt.verify(auth.slice(7), JWT_SECRET);
-      req.user = await db.get('SELECT * FROM users WHERE id = ?', decoded.id);
+      req.user = await db.get('SELECT * FROM users WHERE email = ?', decoded.email);
     } catch (_) {}
   }
   next();
@@ -35,7 +35,7 @@ app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'em
 app.get('/auth/google/callback',
   passport.authenticate('google', { session: false, failureRedirect: CLIENT_URL + '/login?error=true' }),
   (req, res) => {
-    const token = jwt.sign({ id: req.user.id }, JWT_SECRET, { expiresIn: '1d' });
+    const token = jwt.sign({ email: req.user.email }, JWT_SECRET, { expiresIn: '1d' });
     res.redirect(CLIENT_URL + '/login?token=' + token);
   }
 );
@@ -54,7 +54,7 @@ app.post('/auth/demo', ah(async (req, res) => {
   const { email } = req.body;
   const user = await db.get('SELECT * FROM users WHERE email = ?', email);
   if (!user) return res.status(401).json({ error: 'No encontrado. Usa: admin@synexerp.com, 1044619997@synexerp.com' });
-  const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '1d' });
+  const token = jwt.sign({ email: user.email }, JWT_SECRET, { expiresIn: '1d' });
   res.json({ user, token });
 }));
 
