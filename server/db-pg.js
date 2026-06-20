@@ -245,19 +245,22 @@ const seedData = async (companyId) => {
     'Comercial ABC','Industrias del Norte','Grupo Empresarial Sigma','Corporación Andina','MegaRed'];
   const ciudades = ['Bogotá','Medellín','Cali','Barranquilla','Cartagena','Pereira','Bucaramanga'];
 
-  const employeeIds = [];
-  for (let i = 0; i < nombres.length; i++) {
-    const id = uuidv4();
-    employeeIds.push(id);
-    const n = nombres[i];
-    await pool.query(q(`INSERT INTO employees (id,company_id,code,name,email,phone,position,department,salary,hire_date,status,created_by)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, [
-      id, companyId, `EMP-${String(i + 1).padStart(3, '0')}`, n,
-      `${n.toLowerCase().replace(' ','.')}@synex.com`,
-      `300${rand(1000000, 9999999)}`, pick(cargos), pick(departamentos),
-      rand(2000000, 15000000), daysAgo(rand(30, 730)),
-      pick(['active','active','active','active','active','inactive','vacation']), createdBy
-    ]));
+  // Use existing IDs if data already seeded, otherwise create
+  let employeeIds = (await pool.query(q('SELECT id FROM employees WHERE company_id = $1', [companyId]))).rows.map(r => r.id);
+  if (employeeIds.length === 0) {
+    for (let i = 0; i < nombres.length; i++) {
+      const id = uuidv4();
+      const n = nombres[i];
+      await pool.query(q(`INSERT INTO employees (id,company_id,code,name,email,phone,position,department,salary,hire_date,status,created_by)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, [
+        id, companyId, `EMP-${String(i + 1).padStart(3, '0')}`, n,
+        `${n.toLowerCase().replace(' ','.')}@synex.com`,
+        `300${rand(1000000, 9999999)}`, pick(cargos), pick(departamentos),
+        rand(2000000, 15000000), daysAgo(rand(30, 730)),
+        pick(['active','active','active','active','active','inactive','vacation']), createdBy
+      ]));
+      employeeIds.push(id);
+    }
   }
 
   for (let d = 0; d < 30; d++) {
@@ -280,52 +283,58 @@ const seedData = async (companyId) => {
     }
   }
 
-  const catIds = [];
-  for (const c of cats) {
-    const id = uuidv4();
-    catIds.push(id);
-    await pool.query(q('INSERT INTO categories (id, company_id, name, description) VALUES ($1,$2,$3,$4)',
-      [id, companyId, c, `Categoría de ${c}`]));
+  let catIds = (await pool.query(q('SELECT id FROM categories WHERE company_id = $1', [companyId]))).rows.map(r => r.id);
+  if (catIds.length === 0) {
+    for (const c of cats) {
+      const id = uuidv4();
+      catIds.push(id);
+      await pool.query(q('INSERT INTO categories (id, company_id, name, description) VALUES ($1,$2,$3,$4)',
+        [id, companyId, c, `Categoría de ${c}`]));
+    }
   }
 
-  const prodIds = [];
-  for (let i = 0; i < prods.length; i++) {
-    const id = uuidv4();
-    prodIds.push(id);
-    const p = prods[i];
-    await pool.query(q(`INSERT INTO products (id,company_id,code,name,description,category,unit_price,cost_price,stock,min_stock,location,created_by)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, [
-      id, companyId, `PROD-${String(i + 1).padStart(3, '0')}`, p[0], p[1],
-      pick(cats), p[2], p[3], p[4] + rand(-10, 20), rand(5, 20),
-      `Bodega-${String.fromCharCode(65 + rand(0,4))}-${rand(1,20)}`, createdBy
-    ]));
+  let prodIds = (await pool.query(q('SELECT id FROM products WHERE company_id = $1', [companyId]))).rows.map(r => r.id);
+  if (prodIds.length === 0) {
+    for (let i = 0; i < prods.length; i++) {
+      const id = uuidv4();
+      const p = prods[i];
+      await pool.query(q(`INSERT INTO products (id,company_id,code,name,description,category,unit_price,cost_price,stock,min_stock,location,created_by)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, [
+        id, companyId, `PROD-${String(i + 1).padStart(3, '0')}`, p[0], p[1],
+        pick(cats), p[2], p[3], p[4] + rand(-10, 20), rand(5, 20),
+        `Bodega-${String.fromCharCode(65 + rand(0,4))}-${rand(1,20)}`, createdBy
+      ]));
+      prodIds.push(id);
+    }
   }
 
-  const custIds = [];
-  for (let i = 0; i < clientNames.length; i++) {
-    const id = uuidv4();
-    custIds.push(id);
-    const c = clientNames[i];
-    await pool.query(q(`INSERT INTO customers (id,company_id,code,name,email,phone,address,type,credit_limit,created_by)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`, [
-      id, companyId, `CLI-${String(i + 1).padStart(3, '0')}`, c,
-      `contacto@${c.toLowerCase().replace(/[^a-z]/g,'')}.com`,
-      `3${rand(1000000,9999999)}`,
-      `Calle ${rand(1,100)} #${rand(1,20)}-${rand(1,99)}, ${pick(ciudades)}`,
-      pick(['regular','regular','vip','corporate']), rand(5000000, 50000000), createdBy
-    ]));
-  }
-  for (let i = 0; i < 15; i++) {
-    const id = uuidv4();
-    custIds.push(id);
-    await pool.query(q(`INSERT INTO customers (id,company_id,code,name,email,phone,address,type,credit_limit,created_by)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`, [
-      id, companyId, `CLI-${String(clientNames.length + i + 1).padStart(3, '0')}`,
-      `${pick(['Comercial','Distribuidora','Inversiones','Grupo','Corporación'])} ${pick(['Andina','del Sur','del Valle','Nacional','Unida','Global','Prime'])}`,
-      `cliente${i}@email.com`, `3${rand(1000000,9999999)}`,
-      `Cra ${rand(1,50)} #${rand(1,30)}-${rand(1,99)}, ${pick(ciudades)}`,
-      pick(['regular','regular','regular','vip','corporate']), rand(0, 30000000), createdBy
-    ]));
+  let custIds = (await pool.query(q('SELECT id FROM customers WHERE company_id = $1', [companyId]))).rows.map(r => r.id);
+  if (custIds.length === 0) {
+    for (let i = 0; i < clientNames.length; i++) {
+      const id = uuidv4();
+      const c = clientNames[i];
+      await pool.query(q(`INSERT INTO customers (id,company_id,code,name,email,phone,address,type,credit_limit,created_by)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`, [
+        id, companyId, `CLI-${String(i + 1).padStart(3, '0')}`, c,
+        `contacto@${c.toLowerCase().replace(/[^a-z]/g,'')}.com`,
+        `3${rand(1000000,9999999)}`,
+        `Calle ${rand(1,100)} #${rand(1,20)}-${rand(1,99)}, ${pick(ciudades)}`,
+        pick(['regular','regular','vip','corporate']), rand(5000000, 50000000), createdBy
+      ]));
+      custIds.push(id);
+    }
+    for (let i = 0; i < 15; i++) {
+      const id = uuidv4();
+      custIds.push(id);
+      await pool.query(q(`INSERT INTO customers (id,company_id,code,name,email,phone,address,type,credit_limit,created_by)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`, [
+        id, companyId, `CLI-${String(clientNames.length + i + 1).padStart(3, '0')}`,
+        `${pick(['Comercial','Distribuidora','Inversiones','Grupo','Corporación'])} ${pick(['Andina','del Sur','del Valle','Nacional','Unida','Global','Prime'])}`,
+        `cliente${i}@email.com`, `3${rand(1000000,9999999)}`,
+        `Cra ${rand(1,50)} #${rand(1,30)}-${rand(1,99)}, ${pick(ciudades)}`,
+        pick(['regular','regular','regular','vip','corporate']), rand(0, 30000000), createdBy
+      ]));
+    }
   }
 
   for (let i = 0; i < 50; i++) {
