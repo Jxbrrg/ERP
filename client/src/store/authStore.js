@@ -1,6 +1,16 @@
 import { create } from 'zustand';
 
-const useAuthStore = create((set, get) => ({
+const fetchBranding = async (token) => {
+  try {
+    const brandRes = await fetch(__API_URL__ + '/api/company/branding', {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    if (brandRes.ok) return await brandRes.json();
+  } catch (e) { console.error('Failed to load branding', e); }
+  return null;
+};
+
+const useAuthStore = create((set) => ({
   user: null,
   loading: true,
   darkMode: localStorage.getItem('synex-dark') === 'true',
@@ -18,16 +28,6 @@ const useAuthStore = create((set, get) => ({
     return { darkMode: newDark };
   }),
 
-  _fetchBranding: async (token) => {
-    try {
-      const brandRes = await fetch(__API_URL__ + '/api/company/branding', {
-        headers: { Authorization: 'Bearer ' + token }
-      });
-      if (brandRes.ok) return await brandRes.json();
-    } catch (e) { console.error('Failed to load branding', e); }
-    return null;
-  },
-
   checkAuth: async () => {
     const token = localStorage.getItem('synex_token');
     if (!token) return set({ user: null, loading: false });
@@ -38,7 +38,7 @@ const useAuthStore = create((set, get) => ({
       if (res.ok) {
         const user = await res.json();
         if (user.company_id && !user.company) {
-          const branding = await get()._fetchBranding(token);
+          const branding = await fetchBranding(token);
           if (branding) user.company = { ...user.company, ...branding };
         }
         set({ user, loading: false, impersonating: !!localStorage.getItem('synex_admin_token') });
@@ -65,7 +65,7 @@ const useAuthStore = create((set, get) => ({
     localStorage.setItem('synex_token', data.token);
     let user = data.user;
     if (user.company_id) {
-      const branding = await get()._fetchBranding(data.token);
+      const branding = await fetchBranding(data.token);
       if (branding) user.company = { ...user.company, ...branding };
     }
     set({ user, loading: false, impersonating: false });
@@ -86,7 +86,7 @@ const useAuthStore = create((set, get) => ({
     localStorage.setItem('synex_token', data.token);
     let user = data.user;
     if (user.company_id) {
-      const branding = await get()._fetchBranding(data.token);
+      const branding = await fetchBranding(data.token);
       if (branding) user.company = { ...user.company, ...branding };
     }
     set({ user, loading: false });
@@ -104,7 +104,7 @@ const useAuthStore = create((set, get) => ({
     localStorage.setItem('synex_token', data.token);
     let user = data.user;
     if (user.company_id) {
-      const branding = await get()._fetchBranding(data.token);
+      const branding = await fetchBranding(data.token);
       if (branding) user.company = { ...user.company, ...branding };
     }
     set({ user, loading: false, impersonating: true });
@@ -122,7 +122,7 @@ const useAuthStore = create((set, get) => ({
       if (res.ok) {
         let user = await res.json();
         if (user.company_id) {
-          const branding = await get()._fetchBranding(adminToken);
+          const branding = await fetchBranding(adminToken);
           if (branding) user.company = { ...user.company, ...branding };
         }
         set({ user, loading: false, impersonating: false });
