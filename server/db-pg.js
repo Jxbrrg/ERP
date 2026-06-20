@@ -197,8 +197,8 @@ const q = (sql, params) => {
     .replace(/INSERT OR IGNORE\s+INTO/g, 'INSERT INTO')
     .replace(/strftime\('%m',\s*(\w+)\)/gi, "EXTRACT(MONTH FROM $1::timestamp)")
     .replace(/strftime\('%Y-%m',\s*(\w+)\)/gi, "TO_CHAR($1::timestamp, 'YYYY-MM')")
-    .replace(/date\('now',\s*'(-?\d+) months'\)/gi, "CURRENT_DATE - INTERVAL '$1 months'")
-    .replace(/date\('now',\s*'(-?\d+) days'\)/gi, "CURRENT_DATE - INTERVAL '$1 days'")
+    .replace(/date\('now',\s*'-?(\d+) months'\)/gi, "CURRENT_DATE - INTERVAL '$1 months'")
+    .replace(/date\('now',\s*'-?(\d+) days'\)/gi, "CURRENT_DATE - INTERVAL '$1 days'")
     .replace(/date\((\w+)\)/gi, '$1::date')
     .replace(/DATETIME DEFAULT CURRENT_TIMESTAMP/gi, "TIMESTAMPTZ DEFAULT NOW()");
   if (/^INSERT INTO/i.test(text) && !/ON CONFLICT/i.test(text)) {
