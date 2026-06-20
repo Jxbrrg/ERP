@@ -2,7 +2,7 @@ import { apiFetch } from '../api/fetch';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, TrendingUp, TrendingDown, DollarSign, Wallet } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import DataTable from '../components/DataTable';
 
 const COLORS = ['#6366f1', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#f97316', '#ef4444', '#ec4899'];
@@ -13,16 +13,16 @@ export default function Accounting() {
   const [showModal, setShowModal] = useState(false);
 
   const load = () => {
-    apiFetch('/api/accounting')
+    apiFetch(__API_URL__ + '/api/accounting')
       .then(r => r.json()).then(setTxns);
-    apiFetch('/api/accounting/summary')
+    apiFetch(__API_URL__ + '/api/accounting/summary')
       .then(r => r.json()).then(setSummary);
   };
 
   useEffect(load, []);
 
   const handleSave = async (form) => {
-    await apiFetch('/api/accounting', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+    await apiFetch(__API_URL__ + '/api/accounting', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
     load();
     setShowModal(false);
   };

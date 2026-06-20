@@ -13,7 +13,7 @@ router.get('/', ah(async (req, res) => {
   const lowStock = await db.get('SELECT COUNT(*) as count FROM products WHERE stock <= min_stock AND company_id = ?', req.companyId);
 
   const monthlySales = await db.all(`
-    SELECT strftime('%m', created_at) as month, SUM(total) as total
+    SELECT strftime('%Y-%m', created_at) as month, SUM(total) as total
     FROM orders WHERE status != 'cancelled' AND company_id = ?
     AND created_at >= date('now', '-12 months')
     GROUP BY month ORDER BY month

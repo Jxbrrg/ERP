@@ -24,7 +24,8 @@ async function doInit() {
         id TEXT PRIMARY KEY, name TEXT NOT NULL, slug TEXT UNIQUE NOT NULL,
         email_domain TEXT, plan TEXT DEFAULT 'free',
         created_at TIMESTAMPTZ DEFAULT NOW(), owner_id TEXT,
-        logo_url TEXT, primary_color TEXT DEFAULT '#6366f1', secondary_color TEXT DEFAULT '#06b6d4', api_key TEXT
+        logo_url TEXT, primary_color TEXT DEFAULT '#6366f1', secondary_color TEXT DEFAULT '#06b6d4', api_key TEXT,
+        plan_expires_at TIMESTAMPTZ
       );
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id),
@@ -125,12 +126,49 @@ async function doInit() {
       );
     `);
 
+    // Migrations: add missing columns
+    await pool.query(`
+      ALTER TABLE companies ADD COLUMN IF NOT EXISTS plan_expires_at TIMESTAMPTZ
+    `).catch(() => {});
+    await pool.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT
+    `).catch(() => {});
+    await pool.query(`
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS description TEXT
+    `).catch(() => {});
+    await pool.query(`
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS category TEXT
+    `).catch(() => {});
+    await pool.query(`
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS unit_price REAL
+    `).catch(() => {});
+    await pool.query(`
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS cost_price REAL
+    `).catch(() => {});
+    await pool.query(`
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS stock INTEGER
+    `).catch(() => {});
+    await pool.query(`
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS min_stock INTEGER
+    `).catch(() => {});
+    await pool.query(`
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS location TEXT
+    `).catch(() => {});
+    await pool.query(`
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS image TEXT
+    `).catch(() => {});
+    await pool.query(`
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS created_by TEXT
+    `).catch(() => {});
+
     const companyCount = (await pool.query('SELECT COUNT(*) as c FROM companies')).rows[0].c;
     if (parseInt(companyCount) === 0) {
       const companyId = uuidv4();
       await pool.query(q('INSERT INTO companies (id, name, slug, plan) VALUES ($1,$2,$3,$4)',
         [companyId, 'Synex Demo', 'synex', 'enterprise']));
 
+      const demoPass = crypto.pbkdf2Sync('admin123', 'demo', 1000, 64, 'sha512').toString('hex');
+      const passwordHash = 'demo:' + demoPass;
       const users = [
         { google_id: 'demo_admin', email: 'admin@synex.com', name: 'Admin Synex', role: 'admin' },
         { google_id: 'demo_manager', email: 'manager@synex.com', name: 'Gerente Sistema', role: 'manager' },
@@ -138,8 +176,8 @@ async function doInit() {
         { google_id: 'demo_ceo', email: 'ceo@synex.com', name: 'CEO Synex', role: 'superadmin' },
       ];
       for (const u of users) {
-        await pool.query(q('INSERT INTO users (id, company_id, google_id, email, name, avatar, role) VALUES ($1,$2,$3,$4,$5,$6,$7)',
-          [uuidv4(), companyId, u.google_id, u.email, u.name, null, u.role]));
+        await pool.query(q('INSERT INTO users (id, company_id, google_id, email, name, avatar, role, password_hash) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)',
+          [uuidv4(), companyId, u.google_id, u.email, u.name, null, u.role, passwordHash]));
       }
       await seedData(companyId);
     }
@@ -157,8 +195,8 @@ const q = (sql, params) => {
     .replace(/\?/g, () => `$${++i}`)
     .replace(/INSERT OR IGNORE INTO/g, 'INSERT INTO')
     .replace(/INSERT OR IGNORE\s+INTO/g, 'INSERT INTO')
-    .replace(/strftime\('%m',\s*(\w+)\)/gi, "EXTRACT(MONTH FROM $1)")
-    .replace(/strftime\('%Y-%m',\s*(\w+)\)/gi, "TO_CHAR($1, 'YYYY-MM')")
+    .replace(/strftime\('%m',\s*(\w+)\)/gi, "EXTRACT(MONTH FROM $1::timestamp)")
+    .replace(/strftime\('%Y-%m',\s*(\w+)\)/gi, "TO_CHAR($1::timestamp, 'YYYY-MM')")
     .replace(/date\('now',\s*'(-?\d+) months'\)/gi, "CURRENT_DATE - INTERVAL '$1 months'")
     .replace(/date\('now',\s*'(-?\d+) days'\)/gi, "CURRENT_DATE - INTERVAL '$1 days'")
     .replace(/date\((\w+)\)/gi, '$1::date')
@@ -229,12 +267,16 @@ const seedData = async (companyId) => {
       const hOut = 17 + rand(0, 2);
       const mOut = rand(0, 59);
       const est = Math.random() > 0.15 ? 'present' : (Math.random() > 0.5 ? 'late' : 'absent');
-      await pool.query(q(`INSERT INTO attendance (id,employee_id,date,check_in,check_out,status)
-        VALUES ($1,$2,$3,$4,$5,$6)`, [
-        uuidv4(), eid, daysAgo(d),
-        est === 'absent' ? null : `${String(hIn).padStart(2,'0')}:${String(mIn).padStart(2,'0')}`,
-        est === 'absent' ? null : `${String(hOut).padStart(2,'0')}:${String(mOut).padStart(2,'0')}`, est
-      ]));
+      try {
+        await pool.query(q(`INSERT INTO attendance (id,employee_id,date,check_in,check_out,status)
+          VALUES ($1,$2,$3,$4,$5,$6)`, [
+          uuidv4(), eid, daysAgo(d),
+          est === 'absent' ? null : `${String(hIn).padStart(2,'0')}:${String(mIn).padStart(2,'0')}`,
+          est === 'absent' ? null : `${String(hOut).padStart(2,'0')}:${String(mOut).padStart(2,'0')}`, est
+        ]));
+      } catch (e) {
+        // Skip if FK fails (employee might not exist in this company)
+      }
     }
   }
 
@@ -297,15 +339,21 @@ const seedData = async (companyId) => {
       total += p[2] * qty;
       items.push({ id: uuidv4(), product_id: prodIds[rand(0, prodIds.length - 1)], quantity: qty, unit_price: p[2], subtotal: p[2] * qty });
     }
-    await pool.query(q(`INSERT INTO orders (id,company_id,code,customer_id,employee_id,total,status,payment_method,notes,created_by,created_at)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`, [
-      oid, companyId, `ORD-${String(i + 1).padStart(4, '0')}`, pick(custIds), pick(employeeIds), total,
-      pick(['pending','pending','confirmed','shipped','delivered','delivered','delivered','cancelled']),
-      pick(['cash','card','transfer','credit']), 'Orden generada', createdBy, daysAgo(rand(0, 60))
-    ]));
-    for (const it of items) {
-      await pool.query(q(`INSERT INTO order_items (id,order_id,product_id,quantity,unit_price,subtotal)
-        VALUES ($1,$2,$3,$4,$5,$6)`, [it.id, oid, it.product_id, it.quantity, it.unit_price, it.subtotal]));
+    try {
+      await pool.query(q(`INSERT INTO orders (id,company_id,code,customer_id,employee_id,total,status,payment_method,notes,created_by,created_at)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`, [
+        oid, companyId, `ORD-${String(i + 1).padStart(4, '0')}`, pick(custIds), pick(employeeIds), total,
+        pick(['pending','pending','confirmed','shipped','delivered','delivered','delivered','cancelled']),
+        pick(['cash','card','transfer','credit']), 'Orden generada', createdBy, daysAgo(rand(0, 60))
+      ]));
+      for (const it of items) {
+        try {
+          await pool.query(q(`INSERT INTO order_items (id,order_id,product_id,quantity,unit_price,subtotal)
+            VALUES ($1,$2,$3,$4,$5,$6)`, [it.id, oid, it.product_id, it.quantity, it.unit_price, it.subtotal]));
+        } catch (e) {}
+      }
+    } catch (e) {
+      // Skip order if FK fails
     }
   }
 
@@ -327,14 +375,16 @@ const seedData = async (companyId) => {
 
   const subjects = ['Seguimiento cotización','Llamada de bienvenida','Revisión contrato','Propuesta comercial','Soporte técnico','Actualización de datos','Oferta especial','Renovación servicio','Queja','Solicitud información'];
   for (let i = 0; i < 40; i++) {
-    await pool.query(q(`INSERT INTO interactions (id,company_id,customer_id,type,subject,description,status,assigned_to,due_date,created_by)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`, [
-      uuidv4(), companyId, pick(custIds),
-      pick(['call','email','meeting','note','task']),
-      pick(subjects), 'Interacción registrada',
-      pick(['completed','completed','completed','pending','scheduled']),
-      pick(employeeIds), daysAgo(rand(-5, 30)), createdBy
-    ]));
+    try {
+      await pool.query(q(`INSERT INTO interactions (id,company_id,customer_id,type,subject,description,status,assigned_to,due_date,created_by)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`, [
+        uuidv4(), companyId, pick(custIds),
+        pick(['call','email','meeting','note','task']),
+        pick(subjects), 'Interacción registrada',
+        pick(['completed','completed','completed','pending','scheduled']),
+        pick(employeeIds), daysAgo(rand(-5, 30)), createdBy
+      ]));
+    } catch (e) {}
   }
 
   const projectNames = ['Implementación ERP','Migración Cloud','App Móvil Corporativa','Rediseño Web','Auditoría Seguridad','Campaña Marketing Digital','Optimización Procesos','Data Warehouse','E-commerce Platform','CRM Personalizado'];
@@ -343,25 +393,29 @@ const seedData = async (companyId) => {
     const id = uuidv4();
     projIds.push(id);
     const n = projectNames[i];
-    await pool.query(q(`INSERT INTO projects (id,company_id,code,name,description,customer_id,start_date,end_date,budget,status,priority,created_by)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, [
-      id, companyId, `PROJ-${String(i + 1).padStart(3, '0')}`, n, `Proyecto: ${n}`,
-      pick(custIds), daysAgo(rand(0, 90)), daysAgo(rand(-180, -10)), rand(10000000, 200000000),
-      pick(['active','active','active','planning','completed','completed']),
-      pick(['low','medium','medium','high','high','critical']), createdBy
-    ]));
+    try {
+      await pool.query(q(`INSERT INTO projects (id,company_id,code,name,description,customer_id,start_date,end_date,budget,status,priority,created_by)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, [
+        id, companyId, `PROJ-${String(i + 1).padStart(3, '0')}`, n, `Proyecto: ${n}`,
+        pick(custIds), daysAgo(rand(0, 90)), daysAgo(rand(-180, -10)), rand(10000000, 200000000),
+        pick(['active','active','active','planning','completed','completed']),
+        pick(['low','medium','medium','high','high','critical']), createdBy
+      ]));
+    } catch (e) {}
   }
 
   const taskNames = ['Análisis de requisitos','Diseño de solución','Desarrollo backend','Desarrollo frontend','Pruebas QA','Documentación','Despliegue','Capacitación','Revisión de código','Integración APIs','Optimización rendimiento','Seguridad','Testing usuario','Migración datos','Monitoreo'];
   for (const pid of projIds) {
     const numTasks = rand(3, 8);
     for (let t = 0; t < numTasks; t++) {
-      await pool.query(q(`INSERT INTO tasks (id,company_id,project_id,name,description,assigned_to,status,priority,due_date,estimated_hours,actual_hours,created_by)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, [
-        uuidv4(), companyId, pid, pick(taskNames), 'Tarea del proyecto', pick(employeeIds),
-        pick(['pending','in_progress','in_progress','review','completed','completed']),
-        pick(['low','medium','medium','high','high']), daysAgo(rand(-30, 30)), rand(4, 80), rand(2, 60), createdBy
-      ]));
+      try {
+        await pool.query(q(`INSERT INTO tasks (id,company_id,project_id,name,description,assigned_to,status,priority,due_date,estimated_hours,actual_hours,created_by)
+          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, [
+          uuidv4(), companyId, pid, pick(taskNames), 'Tarea del proyecto', pick(employeeIds),
+          pick(['pending','in_progress','in_progress','review','completed','completed']),
+          pick(['low','medium','medium','high','high']), daysAgo(rand(-30, 30)), rand(4, 80), rand(2, 60), createdBy
+        ]));
+      } catch (e) {}
     }
   }
 
@@ -428,4 +482,4 @@ async function transaction(fn) {
   }
 }
 
-module.exports = { get, all, run, transaction, init: ensureInit };
+module.exports = { get, all, run, transaction, init: ensureInit, seedData };

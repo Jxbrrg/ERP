@@ -6,30 +6,55 @@ import {
   TrendingUp, DollarSign, Briefcase, CheckCircle2, Clock,
   ArrowUpRight, ArrowDownRight
 } from 'lucide-react';
-import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import StatsCard from '../components/StatsCard';
-
-const COLORS = ['#6366f1', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#f97316', '#ef4444'];
+import useAuthStore from '../store/authStore';
 
 export default function Dashboard() {
+  const { user } = useAuthStore();
+  const primaryColor = user?.company?.primary_color || '#6366f1';
+  const secondaryColor = user?.company?.secondary_color || '#06b6d4';
+  
+  // Generate color palette from primary/secondary
+  const getColorPalette = (primary, secondary) => [
+    primary,
+    secondary,
+    '#10b981', // emerald
+    '#f59e0b', // amber
+    '#f97316', // orange
+    '#ef4444', // red
+    '#8b5cf6', // violet
+  ];
+
+  const COLORS = getColorPalette(primaryColor, secondaryColor);
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
+    let cancelled = false;
     apiFetch(__API_URL__ + '/api/dashboard')
-      .then(r => r.json())
-      .then(d => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
+      .then(r => { if (!r.ok) throw new Error('Error ' + r.status); return r.json(); })
+      .then(d => { if (!cancelled) { setData(d); setLoading(false); } })
+      .catch(e => { if (!cancelled) { setError(e.message); setLoading(false); } });
+    return () => { cancelled = true; };
   }, []);
 
   if (loading) return <div className="flex h-96 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent" /></div>;
+  if (error) return <div className="flex h-96 items-center justify-center text-rose-500"><p>Error al cargar datos: {error}</p></div>;
+  if (!data) return <div className="flex h-96 items-center justify-center text-slate-400"><p>No hay datos disponibles</p></div>;
+
+  // Generate gradient classes from brand colors
+  const brandGradient = `from-[${primaryColor}] to-[${secondaryColor}]`;
+  const brandGradientLight = `from-[${primaryColor}]/10 to-[${secondaryColor}]/10`;
 
   const stats = [
-    { title: 'Empleados Activos', value: data?.totalEmployees || 0, icon: Users, color: 'gradient-accent', trend: 8 },
-    { title: 'Productos', value: data?.totalProducts || 0, icon: Package, color: 'gradient-success', trend: 12 },
-    { title: 'Órdenes', value: data?.totalOrders || 0, icon: ShoppingCart, color: 'gradient-warning', trend: -3 },
-    { title: 'Clientes', value: data?.totalCustomers || 0, icon: Building2, color: 'gradient-primary', trend: 15 },
-    { title: 'Proyectos Activos', value: data?.activeProjects || 0, icon: Briefcase, color: 'from-cyan-500 to-blue-500', trend: 5 },
+    { title: 'Empleados Activos', value: data?.totalEmployees || 0, icon: Users, color: brandGradient, trend: 8 },
+    { title: 'Productos', value: data?.totalProducts || 0, icon: Package, color: `from-[${secondaryColor}] to-[${primaryColor}]`, trend: 12 },
+    { title: 'Órdenes', value: data?.totalOrders || 0, icon: ShoppingCart, color: `from-[${secondaryColor}] to-amber-500`, trend: -3 },
+    { title: 'Clientes', value: data?.totalCustomers || 0, icon: Building2, color: brandGradient, trend: 15 },
+    { title: 'Proyectos Activos', value: data?.activeProjects || 0, icon: Briefcase, color: `from-cyan-500 to-[${primaryColor}]`, trend: 5 },
     { title: 'Stock Crítico', value: data?.lowStock || 0, icon: AlertTriangle, color: 'from-rose-500 to-pink-500', trend: 2 },
     { title: 'Tareas Completadas', value: data?.completedTasks || 0, icon: CheckCircle2, color: 'from-emerald-500 to-green-500', trend: 20 },
     { title: 'Pendientes', value: data?.pendingTasks || 0, icon: Clock, color: 'from-amber-500 to-orange-500', trend: -5 },
@@ -49,10 +74,12 @@ export default function Dashboard() {
     ordenes: s.count || 0
   })) || [];
 
-  const monthlyData = data?.monthlySales?.map(m => ({
-    month: ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][parseInt(m.month) - 1] || m.month,
-    ingresos: Number(m.total) || 0
-  })) || [];
+  const monthlyData = data?.monthlySales?.map(m => {
+    const [y, mon] = (m.month || '').split('-');
+    const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const label = mon ? months[parseInt(mon) - 1] + ' ' + y.slice(-2) : m.month;
+    return { month: label, ingresos: Number(m.total) || 0 };
+  }) || [];
 
   return (
     <div className="space-y-6">
@@ -88,15 +115,15 @@ export default function Dashboard() {
             <AreaChart data={salesChartData}>
               <defs>
                 <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                  <stop offset="5%" stopColor={primaryColor} stopOpacity={0.3} />
+                  <stop offset="95%" stopColor={primaryColor} stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" strokeOpacity={0.15} />
               <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#94a3b8' }} />
               <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} />
               <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }} />
-              <Area type="monotone" dataKey="ventas" stroke="#6366f1" strokeWidth={2} fill="url(#salesGrad)" />
+              <Area type="monotone" dataKey="ventas" stroke={primaryColor} strokeWidth={2} fill="url(#salesGrad)" />
             </AreaChart>
           </ResponsiveContainer>
         </motion.div>
@@ -109,7 +136,7 @@ export default function Dashboard() {
               <h3 className="text-sm font-semibold text-slate-800 dark:text-white">Ingresos Mensuales</h3>
               <p className="text-xs text-slate-400">Últimos 12 meses</p>
             </div>
-            <DollarSign className="h-5 w-5 text-emerald-500" />
+            <DollarSign className="h-5 w-5" style={{ color: primaryColor }} />
           </div>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={monthlyData}>
@@ -117,7 +144,7 @@ export default function Dashboard() {
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#94a3b8' }} />
               <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} />
               <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }} />
-              <Bar dataKey="ingresos" fill="#6366f1" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="ingresos" fill={primaryColor} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </motion.div>
