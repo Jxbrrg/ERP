@@ -42,7 +42,7 @@ router.post('/', ah(async (req, res) => {
 
   await db.transaction(async (tx) => {
     await tx.run(`INSERT INTO orders (id,code,customer_id,employee_id,total,status,payment_method,notes,company_id,created_by)
-      VALUES (?,?,?,?,?,?,'pending',?,?,?,?)`, id, code, customer_id, employee_id, total, payment_method, notes, req.companyId, req.user.id);
+      VALUES (?,?,?,?,?,?,?,?,?,?)`, id, code, customer_id, employee_id, total, 'pending', payment_method, notes, req.companyId, req.user.id);
     for (const it of items) {
       await tx.run(`INSERT INTO order_items (id,order_id,product_id,quantity,unit_price,subtotal)
         VALUES (?,?,?,?,?,?)`, uuidv4(), id, it.product_id, it.quantity, it.unit_price, it.quantity * it.unit_price);

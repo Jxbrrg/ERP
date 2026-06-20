@@ -27,6 +27,18 @@ const useAuthStore = create((set, get) => ({
       });
       if (res.ok) {
         const user = await res.json();
+        // Fetch company branding if not already in user
+        if (user.company_id && !user.company) {
+          try {
+            const brandRes = await fetch(__API_URL__ + '/api/company/branding', {
+              headers: { Authorization: 'Bearer ' + token }
+            });
+            if (brandRes.ok) {
+              const branding = await brandRes.json();
+              user.company = { ...user.company, ...branding };
+            }
+          } catch (e) { console.error('Failed to load branding', e); }
+        }
         set({ user, loading: false, impersonating: !!localStorage.getItem('synex_admin_token') });
       } else {
         localStorage.removeItem('synex_token');
@@ -49,15 +61,28 @@ const useAuthStore = create((set, get) => ({
     }
     const data = await res.json();
     localStorage.setItem('synex_token', data.token);
-    set({ user: data.user, loading: false, impersonating: false });
-    return data.user;
+    // Fetch branding for the company
+    let user = data.user;
+    if (user.company_id) {
+      try {
+        const brandRes = await fetch(__API_URL__ + '/api/company/branding', {
+          headers: { Authorization: 'Bearer ' + data.token }
+        });
+        if (brandRes.ok) {
+          const branding = await brandRes.json();
+          user.company = { ...user.company, ...branding };
+        }
+      } catch (e) { console.error('Failed to load branding', e); }
+    }
+    set({ user, loading: false, impersonating: false });
+    return user;
   },
 
-  register: async (companyName, name, email, password) => {
+  register: async (companyName, name, email, password, logoBase64, primary_color, secondary_color) => {
     const res = await fetch(__API_URL__ + '/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ companyName, name, email, password })
+      body: JSON.stringify({ companyName, name, email, password, logoBase64, primary_color, secondary_color })
     });
     if (!res.ok) {
       const err = await res.json();
@@ -65,7 +90,19 @@ const useAuthStore = create((set, get) => ({
     }
     const data = await res.json();
     localStorage.setItem('synex_token', data.token);
-    set({ user: data.user, loading: false });
+    let user = data.user;
+    if (user.company_id) {
+      try {
+        const brandRes = await fetch(__API_URL__ + '/api/company/branding', {
+          headers: { Authorization: 'Bearer ' + data.token }
+        });
+        if (brandRes.ok) {
+          const branding = await brandRes.json();
+          user.company = { ...user.company, ...branding };
+        }
+      } catch (e) { console.error('Failed to load branding', e); }
+    }
+    set({ user, loading: false });
     return data;
   },
 
@@ -78,8 +115,20 @@ const useAuthStore = create((set, get) => ({
     const data = await res.json();
     localStorage.setItem('synex_admin_token', token);
     localStorage.setItem('synex_token', data.token);
-    set({ user: data.user, loading: false, impersonating: true });
-    return data.user;
+    let user = data.user;
+    if (user.company_id) {
+      try {
+        const brandRes = await fetch(__API_URL__ + '/api/company/branding', {
+          headers: { Authorization: 'Bearer ' + data.token }
+        });
+        if (brandRes.ok) {
+          const branding = await brandRes.json();
+          user.company = { ...user.company, ...branding };
+        }
+      } catch (e) { console.error('Failed to load branding', e); }
+    }
+    set({ user, loading: false, impersonating: true });
+    return user;
   },
 
   stopImpersonating: async () => {
@@ -91,7 +140,18 @@ const useAuthStore = create((set, get) => ({
         headers: { Authorization: 'Bearer ' + adminToken }
       });
       if (res.ok) {
-        const user = await res.json();
+        let user = await res.json();
+        if (user.company_id) {
+          try {
+            const brandRes = await fetch(__API_URL__ + '/api/company/branding', {
+              headers: { Authorization: 'Bearer ' + adminToken }
+            });
+            if (brandRes.ok) {
+              const branding = await brandRes.json();
+              user.company = { ...user.company, ...branding };
+            }
+          } catch (e) { console.error('Failed to load branding', e); }
+        }
         set({ user, loading: false, impersonating: false });
         return;
       }

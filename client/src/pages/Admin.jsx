@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Building2, Users, CreditCard, TrendingUp, ArrowLeft, Eye } from 'lucide-react';
+import { Building2, Users, CreditCard, TrendingUp, ArrowLeft, Eye, Image, Palette, Save, X, Trash2, AlertCircle } from 'lucide-react';
 import { apiFetch } from '../api/fetch';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
@@ -11,6 +11,9 @@ export default function Admin() {
   const [companies, setCompanies] = useState([]);
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [branding, setBranding] = useState({ logo_url: '', primary_color: '', secondary_color: '' });
+  const [brandingLoading, setBrandingLoading] = useState(false);
+  const [logoPreview, setLogoPreview] = useState('');
 
   useEffect(() => {
     apiFetch(__API_URL__ + '/api/admin/companies')
@@ -25,6 +28,73 @@ export default function Admin() {
       body: JSON.stringify({ plan })
     });
     setCompanies(companies.map(c => c.id === id ? { ...c, plan } : c));
+  };
+
+  const deleteCompany = async (id, name) => {
+    if (!confirm(`¿Eliminar empresa "${name}"? Esta acción NO se puede deshacer. Se borrarán TODOS sus datos (usuarios, productos, clientes, ventas, etc.).`)) return;
+    if (!confirm('¿ESTÁS SEGURO? Escribe "ELIMINAR" en el siguiente prompt para confirmar.')) return;
+    const confirmText = prompt('Escribe ELIMINAR para confirmar:');
+    if (confirmText !== 'ELIMINAR') {
+      alert('Cancelado: texto incorrecto');
+      return;
+    }
+    try {
+      await apiFetch(__API_URL__ + `/api/admin/companies/${id}`, { method: 'DELETE' });
+      setCompanies(companies.filter(c => c.id !== id));
+      alert('Empresa eliminada correctamente');
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  };
+
+  const loadBranding = async (companyId) => {
+    setBrandingLoading(true);
+    try {
+      const res = await apiFetch(__API_URL__ + `/api/admin/companies/${companyId}/branding`);
+      const data = await res.json();
+      setBranding(data);
+      setLogoPreview(data?.logo_url || '');
+    } catch (e) {
+      console.error('Error loading branding', e);
+    }
+    setBrandingLoading(false);
+  };
+
+  const saveBranding = async (companyId) => {
+    setBrandingLoading(true);
+    try {
+      await apiFetch(__API_URL__ + `/api/admin/companies/${companyId}/branding`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(branding)
+      });
+      setCompanies(companies.map(c => c.id === companyId ? { ...c, ...branding } : c));
+      alert('Branding guardado correctamente');
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+    setBrandingLoading(false);
+  };
+
+  const handleLogoChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      alert('El logo debe ser menor a 2MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target.result;
+      setBranding({ ...branding, logo_url: base64 });
+      setLogoPreview(base64);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeLogo = () => {
+    setBranding({ ...branding, logo_url: '' });
+    setLogoPreview('');
   };
 
   if (loading) {
@@ -101,12 +171,18 @@ export default function Admin() {
                   </td>
                   <td className="px-4 py-3 text-slate-500">{c.user_count || 0}</td>
                   <td className="px-4 py-3 text-slate-500">{new Date(c.created_at).toLocaleDateString()}</td>
-                  <td className="px-4 py-3">
-                    <button onClick={() => setSelected(c)}
-                      className="rounded-lg px-3 py-1 text-xs font-medium text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10">
-                      Ver
-                    </button>
-                  </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => { setSelected(c); loadBranding(c.id); }}
+                          className="rounded-lg px-3 py-1 text-xs font-medium text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10">
+                          Ver
+                        </button>
+                        <button onClick={() => deleteCompany(c.id, c.name)}
+                          className="rounded-lg px-3 py-1 text-xs font-medium text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 flex items-center gap-1">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </td>
                 </motion.tr>
               ))}
             </tbody>
@@ -117,9 +193,9 @@ export default function Admin() {
       {selected && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-          onClick={() => setSelected(null)}>
+          onClick={() => { setSelected(null); setBranding({ logo_url: '', primary_color: '', secondary_color: '' }); setLogoPreview(''); }}>
           <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }}
-            className="glass w-full max-w-lg rounded-3xl p-6 shadow-2xl dark:bg-slate-900"
+            className="glass w-full max-w-2xl rounded-3xl p-6 shadow-2xl dark:bg-slate-900 max-h-[90vh] overflow-y-auto"
             onClick={e => e.stopPropagation()}>
             <h3 className="text-lg font-bold text-slate-800 dark:text-white">{selected.name}</h3>
             <div className="mt-4 space-y-2 text-sm text-slate-600 dark:text-slate-400">
@@ -128,12 +204,70 @@ export default function Admin() {
               <p><strong>Usuarios:</strong> {selected.user_count || 0}</p>
               <p><strong>Creada:</strong> {new Date(selected.created_at).toLocaleString()}</p>
             </div>
+
+            <hr className="my-4 border-slate-200 dark:border-slate-700" />
+
+            <div className="space-y-4">
+              <h4 className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                <Palette className="h-4 w-4" /> Branding de la empresa
+              </h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">Color Primario</label>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <input type="color" value={branding.primary_color || '#6366f1'} onChange={e => setBranding({ ...branding, primary_color: e.target.value })}
+                      className="h-10 w-16 rounded-xl border border-slate-200 bg-white cursor-pointer dark:border-slate-600" />
+                    <input type="text" value={branding.primary_color || '#6366f1'} onChange={e => setBranding({ ...branding, primary_color: e.target.value })}
+                      className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-400 dark:border-slate-600 dark:bg-slate-800 dark:text-white" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">Color Secundario</label>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <input type="color" value={branding.secondary_color || '#06b6d4'} onChange={e => setBranding({ ...branding, secondary_color: e.target.value })}
+                      className="h-10 w-16 rounded-xl border border-slate-200 bg-white cursor-pointer dark:border-slate-600" />
+                    <input type="text" value={branding.secondary_color || '#06b6d4'} onChange={e => setBranding({ ...branding, secondary_color: e.target.value })}
+                      className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-400 dark:border-slate-600 dark:bg-slate-800 dark:text-white" />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                  <Image className="h-4 w-4" /> Logo
+                </label>
+                <div className="mt-1.5">
+                  {logoPreview ? (
+                    <div className="flex items-center gap-3">
+                      <img src={logoPreview} alt="Preview" className="h-16 w-16 rounded-xl object-cover border border-slate-200" />
+                      <button type="button" onClick={removeLogo} className="rounded-lg p-1.5 text-slate-400 hover:text-rose-500">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <input type="file" accept="image/*" onChange={handleLogoChange}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-400 dark:border-slate-600 dark:bg-slate-800 dark:text-white file:mr-4 file:rounded-xl file:border-0 file:bg-indigo-50 file:text-indigo-700 file:px-4 file:py-2" />
+                  )}
+                  <p className="mt-1 text-[10px] text-slate-400">PNG, JPG hasta 2MB (se guarda como base64)</p>
+                </div>
+              </div>
+            </div>
+
             <div className="mt-6 flex gap-3">
+              <button onClick={() => saveBranding(selected.id)}
+                disabled={brandingLoading}
+                className="flex items-center justify-center gap-2 rounded-xl bg-indigo-500 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-600 transition-colors disabled:opacity-50">
+                <Save className="h-4 w-4" /> Guardar branding
+              </button>
+              <button onClick={() => { loadBranding(selected.id); }}
+                className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-400">
+                Cargar actual
+              </button>
               <button onClick={() => { impersonate(selected.id); navigate('/dashboard'); }}
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-500 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-600 transition-colors">
                 <Eye className="h-4 w-4" /> Entrar como admin
               </button>
-              <button onClick={() => setSelected(null)}
+              <button onClick={() => { setSelected(null); setBranding({ logo_url: '', primary_color: '', secondary_color: '' }); setLogoPreview(''); }}
                 className="flex-1 rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-400">
                 Cerrar
               </button>

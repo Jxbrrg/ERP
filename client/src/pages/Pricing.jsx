@@ -1,11 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { CheckCircle, ArrowLeft, ArrowRight } from 'lucide-react';
+import { CheckCircle, ArrowLeft, ArrowRight, Star } from 'lucide-react';
 
 const plans = [
-  { name: 'Inicial', price: 'Gratis', period: '14 días', desc: 'Para probar Synex sin compromiso', features: ['Todos los módulos', 'Hasta 5 empleados', 'Soporte por email', '100 transacciones/mes'], cta: 'Probar gratis', popular: false },
-  { name: 'Negocio', price: '$29', period: '/mes', desc: 'Para pequeñas y medianas empresas', features: ['Todos los módulos', 'Hasta 50 empleados', 'Soporte prioritario', 'Transacciones ilimitadas', 'API Access', 'Múltiples usuarios', 'Exportación de datos'], cta: 'Empezar', popular: true },
-  { name: 'Empresarial', price: '$99', period: '/mes', desc: 'Para empresas con necesidades avanzadas', features: ['Todo lo de Negocio', 'Empleados ilimitados', 'Soporte 24/7', 'Personalización de marca', 'On-premise opcional', 'SLA garantizado', 'Gerente de cuenta dedicado'], cta: 'Contactar', popular: false },
+  { name: 'Inicial', price: '50.000', period: '/mes', desc: '14 días gratis, luego $50.000/mes - Para empezar', features: ['Todos los módulos', 'Hasta 2 empleados', 'Soporte por email', '100 transacciones/mes'], cta: 'Probar 14 días gratis', popular: false, trial: true },
+  { name: 'Negocio', price: '120.000', period: '/mes', desc: 'Precio de Lanzamiento - Para empresas en crecimiento', features: ['Todos los módulos', 'Hasta 15 empleados', 'Soporte prioritario', 'Transacciones ilimitadas', 'API Access', 'Múltiples usuarios', 'Exportación de datos', 'Reportes avanzados'], cta: 'Empezar ahora', popular: true, badge: 'OFERTA LANZAMIENTO' },
+  { name: 'Empresarial', price: '230.000', period: '/mes', desc: 'Precio de Lanzamiento - Para grandes organizaciones', features: ['Todo lo de Negocio', 'Empleados ilimitados', 'Soporte 24/7', 'Personalización de marca', 'On-premise opcional', 'SLA garantizado', 'Gerente de cuenta dedicado', 'Seguridad avanzada'], cta: 'Contactar', popular: false, badge: 'OFERTA LANZAMIENTO' },
 ];
 
 const faq = [
@@ -54,17 +54,20 @@ export default function Pricing() {
                     ? 'border-indigo-500 bg-indigo-500/10 shadow-xl shadow-indigo-500/10' 
                     : 'border-white/10 bg-white/5 hover:border-white/20'
                 }`}>
-                {p.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 px-4 py-1 text-xs font-semibold text-white">
-                    Más popular
+                {p.badge && (
+                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-0.5 text-xs font-bold text-white animate-pulse">
+                    {p.badge}
                   </div>
                 )}
                 <h3 className="text-xl font-bold text-white">{p.name}</h3>
                 <div className="mt-4 flex items-baseline gap-1">
-                  <span className="text-4xl font-bold text-white">{p.price}</span>
+                  <span className="text-4xl font-bold text-white">${p.price}</span>
                   <span className="text-slate-400">{p.period}</span>
                 </div>
-                <p className="mt-2 text-sm text-slate-400">{p.desc}</p>
+                {p.trial && (
+                  <p className="mt-1 text-xs text-emerald-400 font-medium">14 días gratis incluido</p>
+                )}
+                <p className="mt-2 text-sm text-slate-300 font-medium">{p.desc}</p>
                 <ul className="mt-6 space-y-3">
                   {p.features.map((f, j) => (
                     <li key={j} className="flex items-center gap-2 text-sm text-slate-300">
@@ -80,6 +83,13 @@ export default function Pricing() {
                   }`}>
                   {p.cta}
                 </button>
+                {p.popular && (
+                  <div className="mt-4 text-center">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 px-3 py-1 text-xs font-semibold text-white">
+                      <Star className="h-3 w-3" /> Más popular
+                    </span>
+                  </div>
+                )}
               </motion.div>
             ))}
           </div>

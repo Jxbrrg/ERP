@@ -1,6 +1,10 @@
 import { motion } from 'framer-motion';
 
 export default function StatsCard({ title, value, icon: Icon, color, suffix, trend, delay = 0 }) {
+  // Handle both gradient classes (from-xxx to-xxx) and direct color values
+  const isGradient = color?.includes('from-') || color?.includes('to-');
+  const bgStyle = isGradient ? { className: `rounded-2xl p-3 ${color}` } : { style: { background: color || '#6366f1', borderRadius: '1rem', padding: '0.75rem' } };
+  
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -25,7 +29,7 @@ export default function StatsCard({ title, value, icon: Icon, color, suffix, tre
             </p>
           )}
         </div>
-        <div className={`rounded-2xl p-3 ${color}`}>
+        <div {...bgStyle}>
           <Icon className="h-5 w-5 text-white" />
         </div>
       </div>

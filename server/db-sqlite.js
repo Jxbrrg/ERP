@@ -264,5 +264,6 @@ module.exports = {
   init() {
     initDb();
     return Promise.resolve();
-  }
+  },
+  seedData
 };

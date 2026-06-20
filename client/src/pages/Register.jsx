@@ -1,22 +1,31 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
-import { Building2, User, Mail, Lock, ArrowLeft } from 'lucide-react';
+import { Building2, User, Mail, Lock, ArrowLeft, Image, X } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 
 export default function Register() {
   const { register } = useAuthStore();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ companyName: '', name: '', email: '', password: '' });
+  const [form, setForm] = useState({ 
+    companyName: '', 
+    name: '', 
+    email: '', 
+    password: '', 
+    logoBase64: '',
+    primary_color: '#e11d48',   // Rosa fresa (strawberry red)
+    secondary_color: '#fde047'  // Amarillo crema (cream yellow)
+  });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [logoPreview, setLogoPreview] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    try {
-      await register(form.companyName, form.name, form.email, form.password);
+      try {
+        await register(form.companyName, form.name, form.email, form.password, form.logoBase64, form.primary_color, form.secondary_color);
       navigate('/dashboard');
     } catch (err) {
       setError(err.message);
@@ -25,6 +34,28 @@ export default function Register() {
   };
 
   const update = (field) => (e) => setForm({ ...form, [field]: e.target.value });
+
+  const handleLogoChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      setError('El logo debe ser menor a 2MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target.result;
+      setForm({ ...form, logoBase64: base64 });
+      setLogoPreview(base64);
+      setError('');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeLogo = () => {
+    setForm({ ...form, logoBase64: '' });
+    setLogoPreview('');
+  };
 
   return (
     <div className="relative flex min-h-screen overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900">
@@ -98,6 +129,47 @@ export default function Register() {
                     placeholder="••••••••"
                     className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none transition-all focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
                     required minLength={6} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">Color Primario</label>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <input type="color" value={form.primary_color || '#6366f1'} onChange={update('primary_color')}
+                      className="h-10 w-16 rounded-xl border border-slate-200 bg-white cursor-pointer dark:border-slate-600" />
+                    <input type="text" value={form.primary_color || '#6366f1'} onChange={update('primary_color')}
+                      className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-400 dark:border-slate-600 dark:bg-slate-800 dark:text-white" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">Color Secundario</label>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <input type="color" value={form.secondary_color || '#06b6d4'} onChange={update('secondary_color')}
+                      className="h-10 w-16 rounded-xl border border-slate-200 bg-white cursor-pointer dark:border-slate-600" />
+                    <input type="text" value={form.secondary_color || '#06b6d4'} onChange={update('secondary_color')}
+                      className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-400 dark:border-slate-600 dark:bg-slate-800 dark:text-white" />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                  <Image className="h-4 w-4" /> Logo de la empresa (opcional, máx 2MB)
+                </label>
+                <div className="mt-1.5">
+                  {logoPreview ? (
+                    <div className="flex items-center gap-3">
+                      <img src={logoPreview} alt="Preview" className="h-16 w-16 rounded-xl object-cover border border-slate-200" />
+                      <button type="button" onClick={removeLogo} className="rounded-lg p-1.5 text-slate-400 hover:text-rose-500">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <input type="file" accept="image/*" onChange={handleLogoChange}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-400 dark:border-slate-600 dark:bg-slate-800 dark:text-white file:mr-4 file:rounded-xl file:border-0 file:bg-indigo-50 file:text-indigo-700 file:px-4 file:py-2" />
+                  )}
+                  <p className="mt-1 text-[10px] text-slate-400">PNG, JPG hasta 2MB</p>
                 </div>
               </div>
 

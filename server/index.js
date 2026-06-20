@@ -59,74 +59,92 @@ app.get('/auth/debug', ah(async (req, res) => {
   res.json({ backfill_affected: result.changes, users, columns: cols });
 }));
 
-app.post('/auth/login', ah(async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' });
-  const user = await db.get('SELECT * FROM users WHERE email = ?', email);
-  if (!user) return res.status(401).json({ error: 'Usuario no encontrado' });
-  if (!user.password_hash) return res.status(401).json({ error: 'Sin contraseña asignada. Usa "Establecer contraseña"' });
-  const parts = user.password_hash.split(':');
-  const salt = parts[0];
-  const hash = parts.slice(1).join(':');
-  const inputHash = require('crypto').pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
-  if (hash !== inputHash) return res.status(401).json({ error: 'Contraseña incorrecta' });
-  const token = jwt.sign({ email: user.email }, JWT_SECRET, { expiresIn: '1d' });
-  const { password_hash, ...safeUser } = user;
-  res.json({ user: safeUser, token });
-}));
+app.post('/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' });
+    const user = await db.get('SELECT * FROM users WHERE email = ?', email);
+    if (!user) return res.status(401).json({ error: 'Usuario no encontrado' });
+    if (!user.password_hash) return res.status(401).json({ error: 'Sin contraseña asignada. Usa "Establecer contraseña"' });
+    const parts = user.password_hash.split(':');
+    const salt = parts[0];
+    const hash = parts.slice(1).join(':');
+    const inputHash = require('crypto').pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+    if (hash !== inputHash) return res.status(401).json({ error: 'Contraseña incorrecta' });
+    const token = jwt.sign({ email: user.email }, JWT_SECRET, { expiresIn: '1d' });
+    const { password_hash, ...safeUser } = user;
+    res.json({ user: safeUser, token });
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ error: err.message || 'Error al iniciar sesión' });
+  }
+});
 
 // === Registration ===
 // === Password reset for legacy users (registered before password auth) ===
-app.post('/auth/set-password', ah(async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' });
-  const user = await db.get('SELECT * FROM users WHERE email = ?', email);
-  if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-  const crypto = require('crypto');
-  const salt = crypto.randomBytes(16).toString('hex');
-  const passwordHash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
-  await db.run('UPDATE users SET password_hash = ? WHERE id = ?', salt + ':' + passwordHash, user.id);
-  res.json({ success: true, message: 'Contraseña establecida. Ahora puedes iniciar sesión.' });
-}));
-
-app.post('/auth/register', ah(async (req, res) => {
-  const { companyName, name, email, password } = req.body;
-  if (!companyName || !name || !email || !password) {
-    return res.status(400).json({ error: 'Todos los campos son obligatorios' });
+app.post('/auth/set-password', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' });
+    const user = await db.get('SELECT * FROM users WHERE email = ?', email);
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    const crypto = require('crypto');
+    const salt = crypto.randomBytes(16).toString('hex');
+    const passwordHash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+    await db.run('UPDATE users SET password_hash = ? WHERE id = ?', salt + ':' + passwordHash, user.id);
+    res.json({ success: true, message: 'Contraseña establecida. Ahora puedes iniciar sesión.' });
+  } catch (err) {
+    console.error('Set-password error:', err);
+    res.status(500).json({ error: err.message || 'Error al establecer contraseña' });
   }
-  if (!email.toLowerCase().endsWith('@synex.com')) {
-    return res.status(400).json({ error: 'Solo correos @synex.com pueden registrarse' });
+});
+
+app.post('/auth/register', async (req, res) => {
+  try {
+    const { companyName, name, email, password, logoBase64, primary_color, secondary_color } = req.body;
+    if (!companyName || !name || !email || !password) {
+      return res.status(400).json({ error: 'Todos los campos son obligatorios' });
+    }
+    if (!email.toLowerCase().endsWith('@synex.com')) {
+      return res.status(400).json({ error: 'Solo correos @synex.com pueden registrarse' });
+    }
+    const existingUser = await db.get('SELECT id FROM users WHERE email = ?', email);
+    if (existingUser) return res.status(409).json({ error: 'El email ya está registrado' });
+
+    const companyId = require('uuid').v4();
+    const slug = companyName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + Date.now().toString(36);
+    const expires = new Date(); expires.setDate(expires.getDate() + 14);
+    await db.run('INSERT INTO companies (id, name, slug, plan, owner_id, plan_expires_at, logo_url, primary_color, secondary_color) VALUES (?,?,?,?,?,?,?,?,?)',
+      companyId, companyName, slug, 'trial', null, expires.toISOString(), logoBase64 || null, primary_color || '#6366f1', secondary_color || '#06b6d4');
+
+    const userId = require('uuid').v4();
+    const crypto = require('crypto');
+    const salt = crypto.randomBytes(16).toString('hex');
+    const passwordHash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+    await db.run('INSERT INTO users (id, company_id, email, name, role, password_hash) VALUES (?,?,?,?,?,?)',
+      userId, companyId, email, name, 'admin', salt + ':' + passwordHash);
+
+    await db.run('UPDATE companies SET owner_id = ? WHERE id = ?', userId, companyId);
+
+    const user = await db.get('SELECT * FROM users WHERE id = ?', userId);
+    const token = jwt.sign({ email: user.email }, JWT_SECRET, { expiresIn: '1d' });
+    res.status(201).json({ user, token, companyId });
+  } catch (err) {
+    console.error('Register error:', err);
+    res.status(500).json({ error: err.message || 'Error al registrar empresa' });
   }
-  const existingUser = await db.get('SELECT id FROM users WHERE email = ?', email);
-  if (existingUser) return res.status(409).json({ error: 'El email ya está registrado' });
-
-  const companyId = require('uuid').v4();
-  const slug = companyName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + Date.now().toString(36);
-  const expires = new Date(); expires.setDate(expires.getDate() + 14);
-  await db.run('INSERT INTO companies (id, name, slug, plan, owner_id, plan_expires_at) VALUES (?,?,?,?,?,?)',
-    companyId, companyName, slug, 'trial', null, expires.toISOString());
-
-  const userId = require('uuid').v4();
-  const crypto = require('crypto');
-  const salt = crypto.randomBytes(16).toString('hex');
-  const passwordHash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
-  await db.run('INSERT INTO users (id, company_id, email, name, role, password_hash) VALUES (?,?,?,?,?,?)',
-    userId, companyId, email, name, 'admin', salt + ':' + passwordHash);
-
-  await db.run('UPDATE companies SET owner_id = ? WHERE id = ?', userId, companyId);
-
-  const user = await db.get('SELECT * FROM users WHERE id = ?', userId);
-  const token = jwt.sign({ email: user.email }, JWT_SECRET, { expiresIn: '1d' });
-  res.status(201).json({ user, token, companyId });
-}));
+});
 
 // === Super Admin routes ===
 app.get('/api/admin/companies', ah(async (req, res) => {
   if (!req.user || req.user.role !== 'superadmin') return res.status(403).json({ error: 'Acceso denegado' });
+  // Exclude the superadmin's own company (platform owner)
   const companies = await db.all(`
     SELECT c.*, (SELECT COUNT(*) FROM users WHERE company_id = c.id) as user_count
-    FROM companies c ORDER BY c.created_at DESC
-  `);
+    FROM companies c 
+    WHERE c.id != ? 
+    ORDER BY c.created_at DESC
+  `, req.companyId);
   res.json(companies);
 }));
 
@@ -143,6 +161,39 @@ app.put('/api/admin/companies/:id/plan', ah(async (req, res) => {
   const { plan } = req.body;
   await db.run('UPDATE companies SET plan = ? WHERE id = ?', plan, req.params.id);
   res.json({ success: true });
+}));
+
+app.put('/api/admin/companies/:id', ah(async (req, res) => {
+  if (!req.user || req.user.role !== 'superadmin') return res.status(403).json({ error: 'Acceso denegado' });
+  const { name, slug } = req.body;
+  if (!name) return res.status(400).json({ error: 'Nombre requerido' });
+  await db.run('UPDATE companies SET name = ?, slug = COALESCE(?, slug) WHERE id = ?', name, slug || null, req.params.id);
+  res.json({ success: true });
+}));
+
+app.delete('/api/admin/companies/:id', ah(async (req, res) => {
+  if (!req.user || req.user.role !== 'superadmin') return res.status(403).json({ error: 'Acceso denegado' });
+  const companyId = req.params.id;
+  const company = await db.get('SELECT id, name FROM companies WHERE id = ?', companyId);
+  if (!company) return res.status(404).json({ error: 'Empresa no encontrada' });
+
+  // Delete all related data (cascade delete)
+  await db.run('DELETE FROM notifications WHERE company_id = ?', companyId);
+  await db.run('DELETE FROM tasks WHERE company_id = ?', companyId);
+  await db.run('DELETE FROM projects WHERE company_id = ?', companyId);
+  await db.run('DELETE FROM interactions WHERE company_id = ?', companyId);
+  await db.run('DELETE FROM transactions WHERE company_id = ?', companyId);
+  await db.run('DELETE FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE company_id = ?)', companyId);
+  await db.run('DELETE FROM orders WHERE company_id = ?', companyId);
+  await db.run('DELETE FROM products WHERE company_id = ?', companyId);
+  await db.run('DELETE FROM customers WHERE company_id = ?', companyId);
+  await db.run('DELETE FROM categories WHERE company_id = ?', companyId);
+  await db.run('DELETE FROM attendance WHERE employee_id IN (SELECT id FROM employees WHERE company_id = ?)', companyId);
+  await db.run('DELETE FROM employees WHERE company_id = ?', companyId);
+  await db.run('DELETE FROM users WHERE company_id = ?', companyId);
+  await db.run('DELETE FROM companies WHERE id = ?', companyId);
+
+  res.json({ success: true, message: `Empresa "${company.name}" eliminada` });
 }));
 
 app.get('/api/admin/alerts', ah(async (req, res) => {
@@ -168,6 +219,67 @@ app.post('/auth/impersonate/:companyId', ah(async (req, res) => {
 app.post('/auth/unimpersonate', ah(async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'No autenticado' });
   res.json({ success: true });
+}));
+
+// === Admin: Seed demo data for a company (superadmin) ===
+app.post('/api/admin/companies/:id/seed', ah(async (req, res) => {
+  if (!req.user || req.user.role !== 'superadmin') return res.status(403).json({ error: 'Acceso denegado' });
+  const companyId = req.params.id;
+  const company = await db.get('SELECT id FROM companies WHERE id = ?', companyId);
+  if (!company) return res.status(404).json({ error: 'Empresa no encontrada' });
+
+  const { seedData } = require('./db');
+  await seedData(companyId);
+
+  res.json({ success: true, message: 'Datos de prueba generados' });
+}));
+
+// === Company Admin: Seed demo data for own company ===
+app.post('/api/company/seed', ah(async (req, res) => {
+  if (!req.user || !['admin', 'superadmin'].includes(req.user.role)) return res.status(403).json({ error: 'Acceso denegado' });
+  const companyId = req.companyId;
+  const company = await db.get('SELECT id FROM companies WHERE id = ?', companyId);
+  if (!company) return res.status(404).json({ error: 'Empresa no encontrada' });
+
+  const { seedData } = require('./db');
+  await seedData(companyId);
+
+  res.json({ success: true, message: 'Datos de prueba generados para tu empresa' });
+}));
+
+// === Recreate CEO Superadmin (emergency) ===
+app.post('/api/setup/create-ceo', ah(async (req, res) => {
+  const { email, password, name } = req.body;
+  const targetEmail = email || 'ceo@synex.com';
+  const targetPassword = password || 'J032902112006';
+  const targetName = name || 'CEO Synex';
+
+  const crypto = require('crypto');
+  const { v4: uuidv4 } = require('uuid');
+
+  // Find or create Synex Demo company
+  let company = await db.get("SELECT id FROM companies WHERE slug = 'synex' OR slug LIKE 'synex-demo%' LIMIT 1");
+  if (!company) {
+    const companyId = uuidv4();
+    await db.run('INSERT INTO companies (id, name, slug, plan) VALUES (?,?,?,?)',
+      companyId, 'Synex Demo', 'synex', 'enterprise');
+    company = { id: companyId };
+  }
+
+  const companyId = company.id;
+
+  // Delete existing CEO if exists
+  await db.run('DELETE FROM users WHERE email = ?', targetEmail);
+
+  // Create CEO superadmin
+  const userId = uuidv4();
+  const salt = crypto.randomBytes(16).toString('hex');
+  const passwordHash = crypto.pbkdf2Sync(targetPassword, salt, 1000, 64, 'sha512').toString('hex');
+  await db.run('INSERT INTO users (id, company_id, email, name, role, password_hash) VALUES (?,?,?,?,?,?)',
+    userId, companyId, targetEmail, targetName, 'superadmin', salt + ':' + passwordHash);
+
+  const token = jwt.sign({ email: targetEmail }, JWT_SECRET, { expiresIn: '1d' });
+  res.json({ success: true, message: 'CEO superadmin creado', user: { email: targetEmail, name: targetName, role: 'superadmin' }, token });
 }));
 
 app.use('/api/dashboard', require('./routes/dashboard'));
@@ -205,6 +317,22 @@ app.put('/api/company/branding', ah(async (req, res) => {
   res.json({ success: true });
 }));
 
+// === Admin Branding (Superadmin can edit any company) ===
+app.get('/api/admin/companies/:id/branding', ah(async (req, res) => {
+  if (!req.user || req.user.role !== 'superadmin') return res.status(403).json({ error: 'Acceso denegado' });
+  const company = await db.get('SELECT logo_url, primary_color, secondary_color FROM companies WHERE id = ?', req.params.id);
+  if (!company) return res.status(404).json({ error: 'Empresa no encontrada' });
+  res.json(company);
+}));
+
+app.put('/api/admin/companies/:id/branding', ah(async (req, res) => {
+  if (!req.user || req.user.role !== 'superadmin') return res.status(403).json({ error: 'Acceso denegado' });
+  const { logo_url, primary_color, secondary_color } = req.body;
+  await db.run('UPDATE companies SET logo_url=?, primary_color=?, secondary_color=? WHERE id=?',
+    logo_url, primary_color || '#6366f1', secondary_color || '#06b6d4', req.params.id);
+  res.json({ success: true });
+}));
+
 // === API Key ===
 app.get('/api/company/api-key', ah(async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'No autenticado' });
@@ -233,6 +361,17 @@ app.get('/api/external/companies/me', ah(async (req, res) => {
   const company = await db.get('SELECT id, name, slug, plan FROM companies WHERE id = ?', req.companyId);
   res.json(company);
 }));
+
+// Global error handler - must be before static file serving
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || 'Error interno del servidor';
+  if (req.path.startsWith('/api/') || req.path.startsWith('/auth/')) {
+    return res.status(status).json({ error: message });
+  }
+  res.status(status).send(`<html><body><h1>Error ${status}</h1><p>${message}</p></body></html>`);
+});
 
 // Serve built frontend in local dev (production mode)
 const clientDist = path.join(__dirname, '..', 'client', 'dist');

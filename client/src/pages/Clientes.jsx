@@ -3,8 +3,11 @@ import { apiFetch } from '../api/fetch';
 import { motion } from 'framer-motion';
 import { Plus, Phone, Mail, MapPin, Edit2, Trash2, MessageSquare } from 'lucide-react';
 import DataTable from '../components/DataTable';
+import useAuthStore from '../store/authStore';
 
 export default function CRM() {
+  const { user } = useAuthStore();
+  const isSuperAdmin = user?.role === 'superadmin';
   const [customers, setCustomers] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editCust, setEditCust] = useState(null);
@@ -47,7 +50,9 @@ export default function CRM() {
     { key: 'actions', label: '', render: r => (
       <div className="flex gap-1" onClick={e => e.stopPropagation()}>
         <button onClick={() => { setEditCust(r); setShowModal(true); }} className="rounded-lg p-1.5 text-slate-400 hover:text-indigo-500"><Edit2 className="h-3.5 w-3.5" /></button>
-        <button onClick={() => handleDelete(r.id)} className="rounded-lg p-1.5 text-slate-400 hover:text-rose-500"><Trash2 className="h-3.5 w-3.5" /></button>
+        {isSuperAdmin && (
+          <button onClick={() => handleDelete(r.id)} className="rounded-lg p-1.5 text-slate-400 hover:text-rose-500"><Trash2 className="h-3.5 w-3.5" /></button>
+        )}
         <button onClick={() => setSelectedCust(r)} className="rounded-lg p-1.5 text-slate-400 hover:text-cyan-500"><MessageSquare className="h-3.5 w-3.5" /></button>
       </div>
     )}
