@@ -53,10 +53,10 @@ app.post('/auth/logout', (req, res) => {
 app.get('/auth/debug', ah(async (req, res) => {
   const crypto = require('crypto');
   const demoHash = crypto.pbkdf2Sync('admin123', 'demo', 1000, 64, 'sha512').toString('hex');
-  const result = db.prepare('UPDATE users SET password_hash = ? WHERE password_hash IS NULL').run('demo:' + demoHash);
+  const result = await db.run('UPDATE users SET password_hash = ? WHERE password_hash IS NULL', 'demo:' + demoHash);
   const users = await db.all('SELECT email, password_hash IS NOT NULL as has_pw, substr(password_hash,1,20) as pw_prefix FROM users');
-  const cols = await db.all("PRAGMA table_info('users')");
-  res.json({ backfill_affected: result.changes, users, columns: cols });
+  const cols = await db.all("SELECT column_name FROM information_schema.columns WHERE table_name = 'users'");
+  res.json({ backfill_affected: result?.changes ?? result?.rowCount ?? 0, users, columns: cols });
 }));
 
 app.post('/auth/login', async (req, res) => {

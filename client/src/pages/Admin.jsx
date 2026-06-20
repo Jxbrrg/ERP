@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Building2, Users, CreditCard, TrendingUp, ArrowLeft, Eye, Image, Palette, Save, X, Trash2, AlertCircle } from 'lucide-react';
+import { Building2, Users, CreditCard, TrendingUp, ArrowLeft, Eye, Image, Palette, Save, X, Trash2 } from 'lucide-react';
 import { apiFetch } from '../api/fetch';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';

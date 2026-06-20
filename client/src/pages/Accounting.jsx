@@ -1,7 +1,7 @@
 import { apiFetch } from '../api/fetch';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, TrendingUp, TrendingDown, DollarSign, Wallet } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import DataTable from '../components/DataTable';
 

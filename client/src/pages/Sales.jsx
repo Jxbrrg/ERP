@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { apiFetch } from '../api/fetch';
 import { motion } from 'framer-motion';
-import { Plus, Eye, ShoppingCart } from 'lucide-react';
+import { Plus, Eye } from 'lucide-react';
 import DataTable from '../components/DataTable';
 
 export default function Sales() {

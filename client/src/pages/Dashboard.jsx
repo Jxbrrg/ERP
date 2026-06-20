@@ -45,19 +45,17 @@ export default function Dashboard() {
   if (error) return <div className="flex h-96 items-center justify-center text-rose-500"><p>Error al cargar datos: {error}</p></div>;
   if (!data) return <div className="flex h-96 items-center justify-center text-slate-400"><p>No hay datos disponibles</p></div>;
 
-  // Generate gradient classes from brand colors
-  const brandGradient = `from-[${primaryColor}] to-[${secondaryColor}]`;
-  const brandGradientLight = `from-[${primaryColor}]/10 to-[${secondaryColor}]/10`;
+  const brandGradient = `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`;
 
   const stats = [
     { title: 'Empleados Activos', value: data?.totalEmployees || 0, icon: Users, color: brandGradient, trend: 8 },
-    { title: 'Productos', value: data?.totalProducts || 0, icon: Package, color: `from-[${secondaryColor}] to-[${primaryColor}]`, trend: 12 },
-    { title: 'Órdenes', value: data?.totalOrders || 0, icon: ShoppingCart, color: `from-[${secondaryColor}] to-amber-500`, trend: -3 },
+    { title: 'Productos', value: data?.totalProducts || 0, icon: Package, color: `linear-gradient(135deg, ${secondaryColor}, ${primaryColor})`, trend: 12 },
+    { title: 'Órdenes', value: data?.totalOrders || 0, icon: ShoppingCart, color: `linear-gradient(135deg, ${secondaryColor}, #f59e0b)`, trend: -3 },
     { title: 'Clientes', value: data?.totalCustomers || 0, icon: Building2, color: brandGradient, trend: 15 },
-    { title: 'Proyectos Activos', value: data?.activeProjects || 0, icon: Briefcase, color: `from-cyan-500 to-[${primaryColor}]`, trend: 5 },
-    { title: 'Stock Crítico', value: data?.lowStock || 0, icon: AlertTriangle, color: 'from-rose-500 to-pink-500', trend: 2 },
-    { title: 'Tareas Completadas', value: data?.completedTasks || 0, icon: CheckCircle2, color: 'from-emerald-500 to-green-500', trend: 20 },
-    { title: 'Pendientes', value: data?.pendingTasks || 0, icon: Clock, color: 'from-amber-500 to-orange-500', trend: -5 },
+    { title: 'Proyectos Activos', value: data?.activeProjects || 0, icon: Briefcase, color: `linear-gradient(135deg, #06b6d4, ${primaryColor})`, trend: 5 },
+    { title: 'Stock Crítico', value: data?.lowStock || 0, icon: AlertTriangle, color: 'linear-gradient(135deg, #f43f5e, #ec4899)', trend: 2 },
+    { title: 'Tareas Completadas', value: data?.completedTasks || 0, icon: CheckCircle2, color: 'linear-gradient(135deg, #10b981, #22c55e)', trend: 20 },
+    { title: 'Pendientes', value: data?.pendingTasks || 0, icon: Clock, color: 'linear-gradient(135deg, #f59e0b, #f97316)', trend: -5 },
   ];
 
   const orderStatusData = [

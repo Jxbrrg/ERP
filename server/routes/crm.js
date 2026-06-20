@@ -46,6 +46,7 @@ router.put('/:id', ah(async (req, res) => {
 
 router.delete('/:id', ah(async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'No autenticado' });
+  if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Solo el administrador puede eliminar clientes' });
   await db.run('DELETE FROM customers WHERE id = ? AND company_id = ?', req.params.id, req.companyId);
   res.json({ success: true });
 }));
