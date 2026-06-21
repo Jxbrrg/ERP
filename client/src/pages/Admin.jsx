@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Building2, Users, CreditCard, TrendingUp, ArrowLeft, Eye, Image, Palette, Save, X, Trash2, DollarSign, Activity, Ban, Phone, MessageCircle } from 'lucide-react';
+import { Building2, Users, CreditCard, TrendingUp, ArrowLeft, Eye, Image, Palette, Save, X, Trash2, DollarSign, Activity, Ban, Phone, MessageCircle, MessageSquare } from 'lucide-react';
 import { apiFetch } from '../api/fetch';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
@@ -17,6 +17,7 @@ export default function Admin() {
   const [tab, setTab] = useState('companies');
   const [billingData, setBillingData] = useState(null);
   const [leads, setLeads] = useState([]);
+  const [contacts, setContacts] = useState([]);
 
   useEffect(() => {
     apiFetch(__API_URL__ + '/api/admin/companies')
@@ -30,6 +31,10 @@ export default function Admin() {
     apiFetch(__API_URL__ + '/api/admin/leads')
       .then(r => r.json())
       .then(setLeads)
+      .catch(() => {});
+    apiFetch(__API_URL__ + '/api/admin/contacts')
+      .then(r => r.json())
+      .then(setContacts)
       .catch(() => {});
   }, []);
 
@@ -139,6 +144,9 @@ export default function Admin() {
         </button>
         <button onClick={() => setTab('leads')} className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-[1px] ${tab === 'leads' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
           <Phone className="h-4 w-4 inline mr-1" /> Leads ({leads.length})
+        </button>
+        <button onClick={() => setTab('contacts')} className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-[1px] ${tab === 'contacts' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
+          <MessageSquare className="h-4 w-4 inline mr-1" /> Contactos ({contacts.length})
         </button>
       </div>
 
@@ -417,6 +425,48 @@ export default function Admin() {
                 ))}
                 {leads.length === 0 && (
                   <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-400">No hay leads aún</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {tab === 'contacts' && (
+        <div className="glass rounded-2xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 dark:border-slate-700">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Nombre</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Email</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Teléfono</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Mensaje</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Fecha</th>
+                </tr>
+              </thead>
+              <tbody>
+                {contacts.map((c, i) => (
+                  <motion.tr key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
+                    className="border-b border-slate-100 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50">
+                    <td className="px-4 py-3 font-medium text-slate-800 dark:text-white">{c.name}</td>
+                    <td className="px-4 py-3">
+                      <a href={`mailto:${c.email}`} className="text-indigo-500 hover:text-indigo-400 transition-colors">{c.email}</a>
+                    </td>
+                    <td className="px-4 py-3 text-slate-500">
+                      {c.phone ? (
+                        <a href={`https://wa.me/57${c.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-emerald-500 hover:text-emerald-400 transition-colors">
+                          <MessageCircle className="h-3.5 w-3.5" /> {c.phone}
+                        </a>
+                      ) : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-slate-500 max-w-xs whitespace-pre-wrap">{c.message}</td>
+                    <td className="px-4 py-3 text-slate-400 text-xs whitespace-nowrap">{new Date(c.created_at).toLocaleDateString('es')} {new Date(c.created_at).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}</td>
+                  </motion.tr>
+                ))}
+                {contacts.length === 0 && (
+                  <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-400">No hay mensajes aún</td></tr>
                 )}
               </tbody>
             </table>

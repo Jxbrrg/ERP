@@ -348,6 +348,12 @@ app.post('/api/contact', ah(async (req, res) => {
   res.status(201).json({ success: true });
 }));
 
+app.get('/api/admin/contacts', ah(async (req, res) => {
+  if (!req.user || req.user.role !== 'superadmin') return res.status(403).json({ error: 'Acceso denegado' });
+  const contacts = await db.all('SELECT * FROM contacts ORDER BY created_at DESC LIMIT 100');
+  res.json(contacts);
+}));
+
 app.get('/api/notifications', ah(async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'No autenticado' });
   const notifs = await db.all('SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 20', req.user.id);
