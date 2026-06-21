@@ -1,7 +1,4 @@
-const axios = require('axios');
-
 const EPAYCO_API = 'https://api.epayco.co/v1';
-const EPAYCO_SECURE = 'https://secure.epayco.co';
 
 const cfg = {
   publicKey: process.env.EPAYCO_PUBLIC_KEY || '',
@@ -9,30 +6,26 @@ const cfg = {
   test: process.env.EPAYCO_TEST !== 'false',
 };
 
-const api = axios.create({
-  baseURL: EPAYCO_API,
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer ' + cfg.privateKey
-  }
-});
+async function apiFetch(path, opts = {}) {
+  if (!cfg.privateKey) return { error: 'Epayco no configurado' };
+  const res = await fetch(EPAYCO_API + path, {
+    method: opts.method || 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + cfg.privateKey,
+    },
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  });
+  return res.json();
+}
 
 async function createCustomer(name, email, phone, tokenCard) {
-  if (!cfg.privateKey) return { error: 'Epayco no configurado' };
-  const payload = {
-    name,
-    email,
-    phone,
-    default: true,
-    token_card: tokenCard,
-  };
+  const payload = { name, email, phone, default: true, token_card: tokenCard };
   if (cfg.test) payload.test = true;
-  const { data } = await api.post('/customers', payload);
-  return data;
+  return apiFetch('/customers', { body: payload });
 }
 
 async function createSubscription(customerId, planCode, docType, docNumber) {
-  if (!cfg.privateKey) return { error: 'Epayco no configurado' };
   const payload = {
     id_plan: planCode,
     customer: customerId,
@@ -45,26 +38,19 @@ async function createSubscription(customerId, planCode, docType, docNumber) {
     no_redirect: false,
   };
   if (cfg.test) payload.test = true;
-  const { data } = await api.post('/subscriptions/create', payload);
-  return data;
+  return apiFetch('/subscriptions/create', { body: payload });
 }
 
 async function cancelSubscription(subscriptionId) {
-  if (!cfg.privateKey) return { error: 'Epayco no configurado' };
-  const { data } = await api.post('/subscriptions/cancel', { id: subscriptionId });
-  return data;
+  return apiFetch('/subscriptions/cancel', { body: { id: subscriptionId } });
 }
 
 async function getSubscription(subscriptionId) {
-  if (!cfg.privateKey) return { error: 'Epayco no configurado' };
-  const { data } = await api.get('/subscriptions/' + subscriptionId);
-  return data;
+  return apiFetch('/subscriptions/' + subscriptionId, { method: 'GET' });
 }
 
 async function getPlan(planCode) {
-  if (!cfg.privateKey) return { error: 'Epayco no configurado' };
-  const { data } = await api.get('/plans/' + planCode);
-  return data;
+  return apiFetch('/plans/' + planCode, { method: 'GET' });
 }
 
 function verifyWebhookSignature(body, signature) {
