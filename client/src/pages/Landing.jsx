@@ -4,9 +4,11 @@ import { motion } from 'framer-motion';
 import { 
   LayoutDashboard, Users, Package, ShoppingCart, 
   BarChart3, Target, FolderKanban, Shield, 
-  ChevronRight, Star, ArrowRight, CheckCircle, Zap, Sparkles, Building2, Globe, Crown 
+  ChevronRight, Star, ArrowRight, CheckCircle, Zap, Sparkles, Building2, Globe, Crown,
+  Send, Mail, Phone, User, MessageSquare
 } from 'lucide-react';
 import LeadModal from '../components/LeadModal';
+import ScrollToTop from '../components/ScrollToTop';
 
 const features = [
   { icon: LayoutDashboard, title: 'Dashboard', desc: 'Paneles en tiempo real con métricas clave de tu negocio', color: 'from-indigo-500 to-purple-500' },
@@ -117,6 +119,8 @@ function PlanCard({ p, i, navigate }) {
 
 export default function Landing() {
   const navigate = useNavigate();
+  const [form, setForm] = useState({ name: '', email: '', phone: '', message: '' });
+  const [formStatus, setFormStatus] = useState(null);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900">
@@ -239,6 +243,64 @@ export default function Landing() {
         </motion.div>
       </section>
 
+      {/* Contact */}
+      <section className="relative px-4 py-20" id="contact">
+        <div className="mx-auto max-w-4xl">
+          <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} className="mb-12 text-center">
+            <h2 className="text-3xl font-bold text-white lg:text-4xl">Contáctanos</h2>
+            <p className="mt-3 text-slate-400">Cuéntanos sobre tu proyecto y te responderemos a la brevedad</p>
+          </motion.div>
+          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
+            className="mx-auto max-w-lg rounded-2xl border border-white/10 bg-white/5 p-8">
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setFormStatus('sending');
+              try {
+                const res = await fetch('/api/contact', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(form),
+                });
+                if (!res.ok) throw new Error();
+                setFormStatus('sent');
+                setForm({ name: '', email: '', phone: '', message: '' });
+              } catch {
+                setFormStatus('error');
+              }
+            }}>
+              <div className="space-y-4">
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                  <input type="text" placeholder="Nombre*" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+                    className="w-full rounded-xl border border-white/10 bg-slate-800/50 py-3 pl-10 pr-4 text-sm text-white placeholder-slate-500 outline-none transition-all focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30" />
+                </div>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                  <input type="email" placeholder="Email*" required value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
+                    className="w-full rounded-xl border border-white/10 bg-slate-800/50 py-3 pl-10 pr-4 text-sm text-white placeholder-slate-500 outline-none transition-all focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30" />
+                </div>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                  <input type="tel" placeholder="Teléfono" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })}
+                    className="w-full rounded-xl border border-white/10 bg-slate-800/50 py-3 pl-10 pr-4 text-sm text-white placeholder-slate-500 outline-none transition-all focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30" />
+                </div>
+                <div className="relative">
+                  <MessageSquare className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                  <textarea rows={4} placeholder="Mensaje*" required value={form.message} onChange={e => setForm({ ...form, message: e.target.value })}
+                    className="w-full resize-none rounded-xl border border-white/10 bg-slate-800/50 py-3 pl-10 pr-4 text-sm text-white placeholder-slate-500 outline-none transition-all focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30" />
+                </div>
+              </div>
+              <button type="submit" disabled={formStatus === 'sending'}
+                className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-xl hover:scale-[1.02] active:scale-95 disabled:opacity-50">
+                {formStatus === 'sending' ? 'Enviando...' : 'Enviar mensaje'} <Send className="h-4 w-4" />
+              </button>
+              {formStatus === 'sent' && <p className="mt-4 text-center text-sm text-emerald-400">¡Mensaje enviado con éxito! Te contactaremos pronto.</p>}
+              {formStatus === 'error' && <p className="mt-4 text-center text-sm text-rose-400">Error al enviar. Intenta de nuevo.</p>}
+            </form>
+          </motion.div>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="border-t border-white/10 px-4 py-8">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
@@ -252,6 +314,7 @@ export default function Landing() {
           </div>
         </div>
       </footer>
+      <ScrollToTop />
     </div>
   );
 }

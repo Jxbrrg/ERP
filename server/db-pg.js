@@ -186,6 +186,18 @@ async function doInit() {
       )
     `);
 
+    // Contacts table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS contacts (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL,
+        phone TEXT,
+        message TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
     // Seed / upsert default billing plans
     const epaycoSvc = require('./services/epayco');
     for (const p of epaycoSvc.DEFAULT_PLANS) {

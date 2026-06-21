@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CheckCircle, ArrowLeft, ArrowRight, Star, ChevronDown, Zap, Sparkles, Building2, Globe, Shield, Crown } from 'lucide-react';
 import LeadModal from '../components/LeadModal';
+import ScrollToTop from '../components/ScrollToTop';
 
 const planIcons = [Zap, Sparkles, Building2, Globe, Shield, Crown];
 
@@ -222,6 +223,7 @@ export default function Pricing() {
           </div>
         </div>
       </footer>
+      <ScrollToTop />
     </div>
   );
 }

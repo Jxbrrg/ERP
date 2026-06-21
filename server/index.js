@@ -340,6 +340,14 @@ app.put('/api/admin/leads/:id', ah(async (req, res) => {
   res.json({ success: true });
 }));
 
+app.post('/api/contact', ah(async (req, res) => {
+  const { name, email, phone, message } = req.body;
+  if (!name || !email || !message) return res.status(400).json({ error: 'Nombre, email y mensaje requeridos' });
+  const id = require('uuid').v4();
+  await db.run('INSERT INTO contacts (id, name, email, phone, message) VALUES (?,?,?,?,?)', id, name, email, phone || '', message);
+  res.status(201).json({ success: true });
+}));
+
 app.get('/api/notifications', ah(async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'No autenticado' });
   const notifs = await db.all('SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 20', req.user.id);
