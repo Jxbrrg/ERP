@@ -188,14 +188,11 @@ const initDb = () => {
     CREATE TABLE IF NOT EXISTS payment_history (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), subscription_id TEXT REFERENCES company_subscriptions(id), epayco_ref TEXT, amount REAL NOT NULL, currency TEXT DEFAULT 'COP', status TEXT DEFAULT 'completed', date TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
   `);
 
-  // Seed default plans if empty
-  const existingPlans = db.prepare('SELECT COUNT(*) as c FROM billing_plans').get();
-  if (existingPlans.c === 0) {
-    const epaycoSvc = require('./services/epayco');
-    const insert = db.prepare('INSERT INTO billing_plans (id, code, name, description, price, currency, interval, features, active) VALUES (?,?,?,?,?,?,?,?,1)');
-    for (const p of epaycoSvc.DEFAULT_PLANS) {
-      insert.run(uuidv4(), p.code, p.name, p.description, p.price, p.currency, p.interval, JSON.stringify(p.features));
-    }
+  // Seed / upsert default billing plans
+  const epaycoSvc = require('./services/epayco');
+  const upsert = db.prepare('INSERT INTO billing_plans (id, code, name, description, price, currency, interval, features, active) VALUES (?,?,?,?,?,?,?,?,1) ON CONFLICT(code) DO UPDATE SET name=excluded.name, description=excluded.description, price=excluded.price, currency=excluded.currency, interval=excluded.interval, features=excluded.features, active=1');
+  for (const p of epaycoSvc.DEFAULT_PLANS) {
+    upsert.run(uuidv4(), p.code, p.name, p.description, p.price, p.currency, p.interval, JSON.stringify(p.features));
   }
 
   // Migration: add columns to existing tables (safe if already exist)

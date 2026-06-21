@@ -171,11 +171,14 @@ async function doInit() {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_subs_epayco ON company_subscriptions(epayco_subscription_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_payments_company ON payment_history(company_id)`);
 
-    // Seed default plans if empty
-    const planCount = (await pool.query('SELECT COUNT(*) as c FROM billing_plans')).rows[0].c;
-    if (parseInt(planCount) === 0) {
-      const epaycoSvc = require('./services/epayco');
-      for (const p of epaycoSvc.DEFAULT_PLANS) {
+    // Seed / upsert default billing plans
+    const epaycoSvc = require('./services/epayco');
+    for (const p of epaycoSvc.DEFAULT_PLANS) {
+      const existing = await pool.query('SELECT id FROM billing_plans WHERE code = $1', [p.code]);
+      if (existing.rows.length > 0) {
+        await pool.query(q('UPDATE billing_plans SET name=$1, description=$2, price=$3, currency=$4, interval=$5, features=$6, active=1 WHERE code=$7',
+          [p.name, p.description, p.price, p.currency, p.interval, JSON.stringify(p.features), p.code]));
+      } else {
         await pool.query(q('INSERT INTO billing_plans (id, code, name, description, price, currency, interval, features, active) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,1)',
           [require('uuid').v4(), p.code, p.name, p.description, p.price, p.currency, p.interval, JSON.stringify(p.features)]));
       }

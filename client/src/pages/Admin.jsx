@@ -176,16 +176,20 @@ export default function Admin() {
                   className="border-b border-slate-100 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50">
                   <td className="px-4 py-3 font-medium text-slate-800 dark:text-white">{c.name}</td>
                   <td className="px-4 py-3 text-slate-500">{c.slug}</td>
-                  <td className="px-4 py-3">
-                    <select value={c.plan} onChange={e => updatePlan(c.id, e.target.value)}
-                      className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs dark:border-slate-600 dark:bg-slate-800">
-                      <option value="trial">Prueba</option>
-                      <option value="starter">Inicial</option>
-                      <option value="business">Negocio</option>
-                      <option value="enterprise">Empresarial</option>
-                      <option value="cancelled">Cancelled</option>
-                    </select>
-                  </td>
+                    <td className="px-4 py-3">
+                      <select value={c.plan} onChange={e => updatePlan(c.id, e.target.value)}
+                        className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs dark:border-slate-600 dark:bg-slate-800">
+                        <option value="trial">Prueba</option>
+                        <option value="personal">Personal</option>
+                        <option value="starter">Inicial</option>
+                        <option value="micro">Microempresa</option>
+                        <option value="business">Negocio</option>
+                        <option value="growth">Crecimiento Regional</option>
+                        <option value="enterprise">Empresarial</option>
+                        <option value="corporate">Corporativo</option>
+                        <option value="cancelled">Cancelado</option>
+                      </select>
+                    </td>
                   <td className="px-4 py-3 text-slate-500">{c.user_count || 0}</td>
                   <td className="px-4 py-3 text-slate-500">{new Date(c.created_at).toLocaleDateString()}</td>
                     <td className="px-4 py-3">
