@@ -145,6 +145,9 @@ export function Navbar({ setMobileOpen }) {
   const [notifs, setNotifs] = useState([]);
   const [showNotifs, setShowNotifs] = useState(false);
   const [showUser, setShowUser] = useState(false);
+  const { expired, plan, plan_expires_at, subscriptionStatus } = user?.company || {};
+  const navigate = useNavigate();
+  const daysLeft = plan_expires_at ? Math.ceil((new Date(plan_expires_at) - new Date()) / 86400000) : 0;
 
   useEffect(() => {
     if (!user) return;
@@ -168,6 +171,22 @@ export function Navbar({ setMobileOpen }) {
           <button onClick={stopImpersonating}
             className="ml-2 rounded-lg bg-amber-600 px-3 py-1 text-xs font-semibold hover:bg-amber-700 transition-colors">
             Salir
+          </button>
+        </div>
+      )}
+      {expired && subscriptionStatus !== 'active' && user?.role !== 'superadmin' && (
+        <div className="sticky top-0 z-40 flex items-center justify-center gap-2 bg-rose-600 px-4 py-2.5 text-sm font-medium text-white">
+          <span>Tu período de prueba terminó. Elegí un plan para seguir usando Synex.</span>
+          <button onClick={() => navigate('/settings')} className="rounded-lg bg-white px-3 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors">
+            Ver Planes
+          </button>
+        </div>
+      )}
+      {!expired && daysLeft > 0 && daysLeft <= 3 && subscriptionStatus !== 'active' && user?.role !== 'superadmin' && (
+        <div className="sticky top-0 z-40 flex items-center justify-center gap-2 bg-amber-500 px-4 py-2 text-sm font-medium text-white">
+          <span>Tu prueba gratis termina en {daysLeft} {daysLeft === 1 ? 'día' : 'días'}.</span>
+          <button onClick={() => navigate('/settings')} className="rounded-lg bg-white px-3 py-1 text-xs font-semibold text-amber-600 hover:bg-amber-50 transition-colors">
+            Elegir Plan
           </button>
         </div>
       )}

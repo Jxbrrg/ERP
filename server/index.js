@@ -39,10 +39,36 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
+// Subscription check middleware (blocks expired trials)
+app.use('/api', async (req, res, next) => {
+  if (!req.user || req.isSuperAdmin) return next();
+  if (req.path.startsWith('/billing/')) return next();
+  if (req.path.startsWith('/company/branding')) return next();
+  if (req.path.startsWith('/company/api-key')) return next();
+
+  try {
+    const company = await db.get('SELECT plan, plan_expires_at, id FROM companies WHERE id = ?', req.companyId);
+    if (!company) return next();
+    const sub = await db.get("SELECT status FROM company_subscriptions WHERE company_id = ? AND status IN ('active','past_due') ORDER BY created_at DESC LIMIT 1", req.companyId);
+    if (sub && sub.status === 'active') return next();
+    if (company.plan_expires_at && new Date(company.plan_expires_at) > new Date()) return next();
+    if (company.plan === 'cancelled' || company.plan === 'free') {
+      return res.status(402).json({ error: 'Suscripción vencida', code: 'subscription_expired' });
+    }
+    return res.status(402).json({ error: 'Tu período de prueba ha terminado. Selecciona un plan en Configuración para continuar.', code: 'trial_expired' });
+  } catch (e) {
+    console.error('Subscription check error:', e);
+    next();
+  }
+});
+
 app.get('/auth/me', ah(async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'No autenticado' });
-  const company = await db.get('SELECT name, slug, logo_url, primary_color, secondary_color, plan FROM companies WHERE id = ?', req.user.company_id);
-  res.json({ ...req.user, company });
+  const company = await db.get('SELECT name, slug, logo_url, primary_color, secondary_color, plan, plan_expires_at FROM companies WHERE id = ?', req.user.company_id);
+  const sub = await db.get("SELECT status FROM company_subscriptions WHERE company_id = ? AND status IN ('active','past_due','cancelled') ORDER BY created_at DESC LIMIT 1", req.user.company_id);
+  const subscriptionStatus = sub?.status || (company.plan === 'trial' ? 'trial' : 'none');
+  const expired = company.plan_expires_at && new Date(company.plan_expires_at) < new Date();
+  res.json({ ...req.user, company: { ...company, subscriptionStatus, expired } });
 }));
 
 app.post('/auth/logout', (req, res) => {
