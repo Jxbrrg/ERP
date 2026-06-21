@@ -69,14 +69,25 @@ function PlanCard({ p, i, navigate }) {
           </li>
         ))}
       </ul>
-      <button onClick={() => navigate('/register')}
-        className={`mt-6 w-full rounded-xl py-2.5 text-sm font-semibold transition-all ${
-          p.popular
-            ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/25 hover:shadow-xl'
-            : 'border border-slate-600 text-slate-300 hover:border-slate-500 hover:text-white'
-        }`}>
-        {p.cta}
-      </button>
+      {p.cta === 'Contactar' ? (
+        <a href={`https://wa.me/573332361814?text=${encodeURIComponent('Hola, quiero información sobre el plan ' + p.name)}`} target="_blank" rel="noopener noreferrer"
+          className={`mt-6 w-full rounded-xl py-2.5 text-sm font-semibold transition-all text-center block ${
+            p.popular
+              ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/25 hover:shadow-xl'
+              : 'border border-slate-600 text-slate-300 hover:border-slate-500 hover:text-white'
+          }`}>
+          Contactar por WhatsApp
+        </a>
+      ) : (
+        <button onClick={() => navigate('/register')}
+          className={`mt-6 w-full rounded-xl py-2.5 text-sm font-semibold transition-all ${
+            p.popular
+              ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/25 hover:shadow-xl'
+              : 'border border-slate-600 text-slate-300 hover:border-slate-500 hover:text-white'
+          }`}>
+          {p.cta}
+        </button>
+      )}
       {p.popular && (
         <div className="mt-3 text-center">
           <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 px-3 py-0.5 text-[10px] font-semibold text-white">
