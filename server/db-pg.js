@@ -171,6 +171,21 @@ async function doInit() {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_subs_epayco ON company_subscriptions(epayco_subscription_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_payments_company ON payment_history(company_id)`);
 
+    // Leads table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS leads (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        company TEXT,
+        phone TEXT NOT NULL,
+        email TEXT,
+        plan_name TEXT NOT NULL,
+        status TEXT DEFAULT 'new' CHECK(status IN ('new','contacted','qualified','lost')),
+        notes TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
     // Seed / upsert default billing plans
     const epaycoSvc = require('./services/epayco');
     for (const p of epaycoSvc.DEFAULT_PLANS) {

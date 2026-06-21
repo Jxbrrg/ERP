@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Building2, Users, CreditCard, TrendingUp, ArrowLeft, Eye, Image, Palette, Save, X, Trash2, DollarSign, Activity, Ban } from 'lucide-react';
+import { Building2, Users, CreditCard, TrendingUp, ArrowLeft, Eye, Image, Palette, Save, X, Trash2, DollarSign, Activity, Ban, Phone, MessageCircle } from 'lucide-react';
 import { apiFetch } from '../api/fetch';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
@@ -16,6 +16,7 @@ export default function Admin() {
   const [logoPreview, setLogoPreview] = useState('');
   const [tab, setTab] = useState('companies');
   const [billingData, setBillingData] = useState(null);
+  const [leads, setLeads] = useState([]);
 
   useEffect(() => {
     apiFetch(__API_URL__ + '/api/admin/companies')
@@ -25,6 +26,10 @@ export default function Admin() {
     apiFetch(__API_URL__ + '/api/billing/admin/overview')
       .then(r => r.json())
       .then(setBillingData)
+      .catch(() => {});
+    apiFetch(__API_URL__ + '/api/admin/leads')
+      .then(r => r.json())
+      .then(setLeads)
       .catch(() => {});
   }, []);
 
@@ -131,6 +136,9 @@ export default function Admin() {
         </button>
         <button onClick={() => setTab('billing')} className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-[1px] ${tab === 'billing' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
           <DollarSign className="h-4 w-4 inline mr-1" /> Facturación
+        </button>
+        <button onClick={() => setTab('leads')} className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-[1px] ${tab === 'leads' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
+          <Phone className="h-4 w-4 inline mr-1" /> Leads ({leads.length})
         </button>
       </div>
 
@@ -356,6 +364,62 @@ export default function Admin() {
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+      )}
+
+      {tab === 'leads' && (
+        <div className="glass rounded-2xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 dark:border-slate-700">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Nombre</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Empresa</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">WhatsApp</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Email</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Plan</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Estado</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Fecha</th>
+                </tr>
+              </thead>
+              <tbody>
+                {leads.map((l, i) => (
+                  <motion.tr key={l.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
+                    className="border-b border-slate-100 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50">
+                    <td className="px-4 py-3 font-medium text-slate-800 dark:text-white">{l.name}</td>
+                    <td className="px-4 py-3 text-slate-500">{l.company || '—'}</td>
+                    <td className="px-4 py-3">
+                      <a href={`https://wa.me/57${l.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Hola ' + l.name + ', vi tu solicitud del plan ' + l.plan_name)}`} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-emerald-500 hover:text-emerald-400 transition-colors">
+                        <MessageCircle className="h-3.5 w-3.5" /> {l.phone}
+                      </a>
+                    </td>
+                    <td className="px-4 py-3 text-slate-500">{l.email || '—'}</td>
+                    <td className="px-4 py-3 font-medium text-slate-700 dark:text-slate-300">{l.plan_name}</td>
+                    <td className="px-4 py-3">
+                      <select value={l.status} onChange={async (e) => {
+                        await apiFetch(__API_URL__ + '/api/admin/leads/' + l.id, {
+                          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ status: e.target.value })
+                        });
+                        setLeads(leads.map(x => x.id === l.id ? { ...x, status: e.target.value } : x));
+                      }}
+                        className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs dark:border-slate-600 dark:bg-slate-800">
+                        <option value="new">Nuevo</option>
+                        <option value="contacted">Contactado</option>
+                        <option value="qualified">Calificado</option>
+                        <option value="lost">Perdido</option>
+                      </select>
+                    </td>
+                    <td className="px-4 py-3 text-slate-400 text-xs">{new Date(l.created_at).toLocaleDateString('es')}</td>
+                  </motion.tr>
+                ))}
+                {leads.length === 0 && (
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-400">No hay leads aún</td></tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

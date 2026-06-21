@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
@@ -5,6 +6,7 @@ import {
   BarChart3, Target, FolderKanban, Shield, 
   ChevronRight, Star, ArrowRight, CheckCircle, Zap, Sparkles, Building2, Globe, Crown 
 } from 'lucide-react';
+import LeadModal from '../components/LeadModal';
 
 const features = [
   { icon: LayoutDashboard, title: 'Dashboard', desc: 'Paneles en tiempo real con métricas clave de tu negocio', color: 'from-indigo-500 to-purple-500' },
@@ -40,7 +42,10 @@ const iconStyles = {
 function PlanCard({ p, i, navigate }) {
   const Icon = planIcons[i % planIcons.length];
   const s = iconStyles[p.icon] || iconStyles.blue;
+  const [showLead, setShowLead] = useState(false);
   return (
+    <>
+    {showLead && <LeadModal planName={p.name} onClose={() => setShowLead(false)} />}
     <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
       className={`relative rounded-2xl border p-6 transition-all flex flex-col ${
         p.popular
@@ -70,14 +75,14 @@ function PlanCard({ p, i, navigate }) {
         ))}
       </ul>
       {p.cta === 'Contactar' ? (
-        <a href={`https://wa.me/573332361814?text=${encodeURIComponent('Hola, quiero información sobre el plan ' + p.name)}`} target="_blank" rel="noopener noreferrer"
-          className={`mt-6 w-full rounded-xl py-2.5 text-sm font-semibold transition-all text-center block ${
+        <button onClick={() => setShowLead(true)}
+          className={`mt-6 w-full rounded-xl py-2.5 text-sm font-semibold transition-all ${
             p.popular
               ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/25 hover:shadow-xl'
               : 'border border-slate-600 text-slate-300 hover:border-slate-500 hover:text-white'
           }`}>
           Contactar por WhatsApp
-        </a>
+        </button>
       ) : (
         <button onClick={() => navigate('/register')}
           className={`mt-6 w-full rounded-xl py-2.5 text-sm font-semibold transition-all ${

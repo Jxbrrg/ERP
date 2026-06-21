@@ -319,6 +319,27 @@ app.use('/api/crm', require('./routes/crm'));
 app.use('/api/projects', require('./routes/projects'));
 app.use('/api/billing', require('./routes/billing'));
 
+app.post('/api/leads', ah(async (req, res) => {
+  const { name, company, phone, email, plan_name } = req.body;
+  if (!name || !phone || !plan_name) return res.status(400).json({ error: 'Nombre, teléfono y plan requeridos' });
+  const id = require('uuid').v4();
+  await db.run('INSERT INTO leads (id, name, company, phone, email, plan_name) VALUES (?,?,?,?,?,?)', id, name, company || '', phone, email || '', plan_name);
+  res.status(201).json({ success: true });
+}));
+
+app.get('/api/admin/leads', ah(async (req, res) => {
+  if (!req.user || req.user.role !== 'superadmin') return res.status(403).json({ error: 'Acceso denegado' });
+  const leads = await db.all('SELECT * FROM leads ORDER BY created_at DESC LIMIT 100');
+  res.json(leads);
+}));
+
+app.put('/api/admin/leads/:id', ah(async (req, res) => {
+  if (!req.user || req.user.role !== 'superadmin') return res.status(403).json({ error: 'Acceso denegado' });
+  const { status, notes } = req.body;
+  await db.run('UPDATE leads SET status=?, notes=? WHERE id=?', status || 'new', notes || '', req.params.id);
+  res.json({ success: true });
+}));
+
 app.get('/api/notifications', ah(async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'No autenticado' });
   const notifs = await db.all('SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 20', req.user.id);

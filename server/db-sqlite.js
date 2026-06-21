@@ -186,6 +186,7 @@ const initDb = () => {
     CREATE TABLE IF NOT EXISTS billing_plans (id TEXT PRIMARY KEY, code TEXT UNIQUE NOT NULL, name TEXT NOT NULL, description TEXT, price REAL NOT NULL, currency TEXT DEFAULT 'COP', interval TEXT DEFAULT 'month', features TEXT, active INTEGER DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
     CREATE TABLE IF NOT EXISTS company_subscriptions (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), plan_id TEXT REFERENCES billing_plans(id), epayco_customer_id TEXT, epayco_subscription_id TEXT, status TEXT DEFAULT 'active' CHECK(status IN ('active','past_due','cancelled','expired')), current_period_start DATETIME, current_period_end DATETIME, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
     CREATE TABLE IF NOT EXISTS payment_history (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), subscription_id TEXT REFERENCES company_subscriptions(id), epayco_ref TEXT, amount REAL NOT NULL, currency TEXT DEFAULT 'COP', status TEXT DEFAULT 'completed', date TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
+    CREATE TABLE IF NOT EXISTS leads (id TEXT PRIMARY KEY, name TEXT NOT NULL, company TEXT, phone TEXT NOT NULL, email TEXT, plan_name TEXT NOT NULL, status TEXT DEFAULT 'new' CHECK(status IN ('new','contacted','qualified','lost')), notes TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
   `);
 
   // Seed / upsert default billing plans
