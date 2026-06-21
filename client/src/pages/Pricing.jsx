@@ -132,6 +132,7 @@ function PlanCard({ p, i, navigate }) {
 export default function Pricing() {
   const navigate = useNavigate();
   const [openFaq, setOpenFaq] = useState(null);
+  const [showLeadCta, setShowLeadCta] = useState(false);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900">
@@ -201,9 +202,10 @@ export default function Pricing() {
             </div>
           </motion.div>
 
+          {showLeadCta && <LeadModal planName="Personalizado" onClose={() => setShowLeadCta(false)} />}
           <div className="mt-16 text-center">
             <p className="text-slate-400">¿Necesitas un plan personalizado?</p>
-            <button onClick={() => navigate('/register')}
+            <button onClick={() => setShowLeadCta(true)}
               className="mt-4 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 px-6 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl">
               Contáctanos <ArrowRight className="h-4 w-4" />
             </button>
