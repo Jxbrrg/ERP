@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { CheckCircle, ArrowLeft, ArrowRight, Star, Zap, Sparkles, Building2, Globe, Shield, Crown } from 'lucide-react';
+import { CheckCircle, ArrowLeft, ArrowRight, Star, ChevronDown, Zap, Sparkles, Building2, Globe, Shield, Crown } from 'lucide-react';
 import LeadModal from '../components/LeadModal';
 
 const planIcons = [Zap, Sparkles, Building2, Globe, Shield, Crown];
@@ -25,12 +25,12 @@ const plans = [
   {
     name: 'Negocio', price: '150.000', period: '/mes', color: 'blue', iconBg: 'bg-blue-500/20 text-blue-400',
     desc: 'Para empresas en crecimiento', features: ['Todos los módulos', 'Hasta 15 empleados', 'Transacciones ilimitadas', 'Soporte prioritario', 'API Access', 'Exportación completa', 'Reportes avanzados'],
-    cta: 'Empezar ahora', popular: true, badge: 'MÁS POPULAR',
+    cta: 'Contratar plan', popular: true, badge: 'MÁS POPULAR',
   },
   {
     name: 'Crecimiento Regional', price: '180.000', period: '/mes', color: 'purple', iconBg: 'bg-purple-500/20 text-purple-400',
     desc: 'Para empresas con sucursales', features: ['Todo lo de Negocio', 'Hasta 40 empleados', 'Multisede y almacenes', 'Roles y permisos avanzados', 'Copias de seguridad programadas'],
-    cta: 'Empezar ahora', popular: false,
+    cta: 'Contratar plan', popular: false,
   },
   {
     name: 'Empresarial', price: '230.000', period: '/mes', color: 'rose', iconBg: 'bg-rose-500/20 text-rose-400',
@@ -46,7 +46,7 @@ const plans = [
 
 const faq = [
   { q: '¿Puedo cambiar de plan después?', a: 'Sí, puedes subir o bajar de plan en cualquier momento desde Configuración → Suscripción, sin penalización.' },
-  { q: '¿Hay período de prueba gratis?', a: 'Sí, todos los planes incluyen 14 días gratis sin necesidad de tarjeta de crédito.' },
+  { q: '¿Hay período de prueba gratis?', a: 'Sí, los planes Personal, Inicial y Microempresa incluyen 14 días gratis sin necesidad de tarjeta de crédito.' },
   { q: '¿Qué significa "transacciones/mes"?', a: 'Cada venta, compra o movimiento contable cuenta como una transacción. Los planes superiores tienen límites más altos o ilimitados.' },
   { q: '¿Puedo tener varias sucursales?', a: 'Sí, los planes Crecimiento Regional en adelante incluyen multisede y múltiples almacenes.' },
   { q: '¿Mis datos están seguros?', a: 'Todos los datos se almacenan en servidores seguros con encriptación SSL. Ofrecemos backups diarios programados.' },
@@ -56,15 +56,8 @@ const faq = [
 function PlanCard({ p, i, navigate }) {
   const Icon = planIcons[i % planIcons.length];
   const [showLead, setShowLead] = useState(false);
-  return (
+  const cardContent = (
     <>
-    {showLead && <LeadModal planName={p.name} onClose={() => setShowLead(false)} />}
-    <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
-      className={`relative rounded-2xl border p-6 transition-all flex flex-col ${
-        p.popular
-          ? 'border-indigo-500 bg-indigo-500/10 shadow-xl shadow-indigo-500/10 scale-105 z-10'
-          : 'border-white/10 bg-white/5 hover:border-white/20'
-      }`}>
       {p.badge && (
         <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-1 text-[10px] font-bold text-white uppercase tracking-wider animate-pulse whitespace-nowrap">
           {p.badge}
@@ -91,8 +84,8 @@ function PlanCard({ p, i, navigate }) {
         <button onClick={() => setShowLead(true)}
           className={`mt-6 w-full rounded-xl py-2.5 text-sm font-semibold transition-all ${
             p.popular
-              ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/25 hover:shadow-xl'
-              : 'border border-slate-600 text-slate-300 hover:border-slate-500 hover:text-white'
+              ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:scale-[1.02] active:scale-95'
+              : 'border border-slate-600 text-slate-300 hover:border-slate-500 hover:text-white hover:scale-[1.02] active:scale-95'
           }`}>
           Contactar por WhatsApp
         </button>
@@ -100,8 +93,8 @@ function PlanCard({ p, i, navigate }) {
         <button onClick={() => navigate('/register')}
           className={`mt-6 w-full rounded-xl py-2.5 text-sm font-semibold transition-all ${
             p.popular
-              ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/25 hover:shadow-xl'
-              : 'border border-slate-600 text-slate-300 hover:border-slate-500 hover:text-white'
+              ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:scale-[1.02] active:scale-95'
+              : 'border border-slate-600 text-slate-300 hover:border-slate-500 hover:text-white hover:scale-[1.02] active:scale-95'
           }`}>
           {p.cta}
         </button>
@@ -113,13 +106,31 @@ function PlanCard({ p, i, navigate }) {
           </span>
         </div>
       )}
-    </motion.div>
+    </>
+  );
+  return (
+    <>
+    {showLead && <LeadModal planName={p.name} onClose={() => setShowLead(false)} />}
+    {p.popular ? (
+      <div className="relative rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-500 p-[1px] shadow-xl shadow-indigo-500/10 scale-105 z-10">
+        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
+          className="rounded-2xl bg-slate-900 p-6 transition-all flex flex-col hover:-translate-y-1 hover:shadow-2xl">
+          {cardContent}
+        </motion.div>
+      </div>
+    ) : (
+      <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
+        className="relative rounded-2xl border border-white/10 bg-white/5 p-6 transition-all flex flex-col hover:-translate-y-1 hover:border-white/20 hover:shadow-xl">
+        {cardContent}
+      </motion.div>
+    )}
     </>
   );
 }
 
 export default function Pricing() {
   const navigate = useNavigate();
+  const [openFaq, setOpenFaq] = useState(null);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900">
@@ -163,13 +174,28 @@ export default function Pricing() {
           {/* FAQ */}
           <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} className="mt-20">
             <h2 className="mb-8 text-center text-2xl font-bold text-white">Preguntas Frecuentes</h2>
-            <div className="mx-auto max-w-2xl space-y-4">
+            <div className="mx-auto max-w-2xl space-y-3">
               {faq.map((item, i) => (
-                <motion.details key={i} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                  className="group rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:border-white/20">
-                  <summary className="cursor-pointer text-sm font-medium text-white">{item.q}</summary>
-                  <p className="mt-3 text-sm text-slate-400">{item.a}</p>
-                </motion.details>
+                <motion.div key={i} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                  className={`rounded-xl border transition-all cursor-pointer ${
+                    openFaq === i
+                      ? 'border-indigo-500/30 bg-indigo-500/5'
+                      : 'border-white/10 bg-white/5 hover:border-white/20'
+                  }`}>
+                  <button onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                    className="flex w-full items-center justify-between p-4 text-left">
+                    <span className="text-sm font-medium text-white">{item.q}</span>
+                    <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition-transform duration-300 ${
+                      openFaq === i ? 'rotate-180 text-indigo-400' : ''
+                    }`} />
+                  </button>
+                  <motion.div initial={false} animate={{
+                    height: openFaq === i ? 'auto' : 0,
+                    opacity: openFaq === i ? 1 : 0,
+                  }} transition={{ duration: 0.3 }} className="overflow-hidden">
+                    <p className="px-4 pb-4 text-sm text-slate-400">{item.a}</p>
+                  </motion.div>
+                </motion.div>
               ))}
             </div>
           </motion.div>

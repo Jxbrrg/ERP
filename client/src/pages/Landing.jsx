@@ -23,8 +23,8 @@ const plans = [
   { name: 'Personal', price: '30.000', period: '/mes', desc: 'Para emprendedores independientes', features: ['Panel, Ventas básico', 'Inventario reducido', 'Contabilidad simplificada', '1 usuario · 1 empleado', 'Hasta 40 transacciones/mes'], cta: 'Probar 14 días gratis', popular: false, trial: true, icon: 'emerald' },
   { name: 'Inicial', price: '50.000', period: '/mes', desc: 'Para empezar formalmente', features: ['Todos los módulos', 'Hasta 2 empleados', '100 transacciones/mes', 'Soporte por correo'], cta: 'Probar 14 días gratis', popular: false, trial: true, icon: 'amber' },
   { name: 'Microempresa', price: '80.000', period: '/mes', desc: 'Para negocios con equipo pequeño', features: ['Todos los módulos', 'Hasta 6 empleados', '300 transacciones/mes', 'Soporte correo y chat', 'Reportes sencillos'], cta: 'Probar 14 días gratis', popular: false, trial: true, icon: 'orange' },
-  { name: 'Negocio', price: '150.000', period: '/mes', desc: 'Para empresas en crecimiento', features: ['Hasta 15 empleados', 'Transacciones ilimitadas', 'Soporte prioritario', 'API Access', 'Exportación completa', 'Reportes avanzados'], cta: 'Empezar ahora', popular: true, badge: 'MÁS POPULAR', icon: 'blue' },
-  { name: 'Crecimiento Regional', price: '180.000', period: '/mes', desc: 'Para empresas con sucursales', features: ['Hasta 40 empleados', 'Multisede y almacenes', 'Roles y permisos avanzados', 'Copias de seguridad programadas'], cta: 'Empezar ahora', popular: false, icon: 'purple' },
+  { name: 'Negocio', price: '150.000', period: '/mes', desc: 'Para empresas en crecimiento', features: ['Hasta 15 empleados', 'Transacciones ilimitadas', 'Soporte prioritario', 'API Access', 'Exportación completa', 'Reportes avanzados'], cta: 'Contratar plan', popular: true, badge: 'MÁS POPULAR', icon: 'blue' },
+  { name: 'Crecimiento Regional', price: '180.000', period: '/mes', desc: 'Para empresas con sucursales', features: ['Hasta 40 empleados', 'Multisede y almacenes', 'Roles y permisos avanzados', 'Copias de seguridad programadas'], cta: 'Contratar plan', popular: false, icon: 'purple' },
   { name: 'Empresarial', price: '230.000', period: '/mes', desc: 'Para grandes organizaciones', features: ['Empleados ilimitados', 'Soporte 24/7', 'Marca propia', 'Gerente de cuenta dedicado', 'On-premise opcional', 'SLA garantizado'], cta: 'Contactar', popular: false, icon: 'rose' },
   { name: 'Corporativo', price: '360.000', period: '/mes', desc: 'Para grupos empresariales', features: ['Multiempresa misma cuenta', 'Informes consolidados', 'Personalización total', 'Capacitación presencial', 'Auditorías periódicas'], cta: 'Contactar', popular: false, icon: 'slate' },
 ];
@@ -43,15 +43,8 @@ function PlanCard({ p, i, navigate }) {
   const Icon = planIcons[i % planIcons.length];
   const s = iconStyles[p.icon] || iconStyles.blue;
   const [showLead, setShowLead] = useState(false);
-  return (
+  const cardContent = (
     <>
-    {showLead && <LeadModal planName={p.name} onClose={() => setShowLead(false)} />}
-    <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
-      className={`relative rounded-2xl border p-6 transition-all flex flex-col ${
-        p.popular
-          ? 'border-indigo-500 bg-indigo-500/10 shadow-xl shadow-indigo-500/10 scale-105 z-10'
-          : 'border-white/10 bg-white/5 hover:border-white/20'
-      }`}>
       {p.badge && (
         <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-1 text-[10px] font-bold text-white uppercase tracking-wider animate-pulse whitespace-nowrap">
           {p.badge}
@@ -78,8 +71,8 @@ function PlanCard({ p, i, navigate }) {
         <button onClick={() => setShowLead(true)}
           className={`mt-6 w-full rounded-xl py-2.5 text-sm font-semibold transition-all ${
             p.popular
-              ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/25 hover:shadow-xl'
-              : 'border border-slate-600 text-slate-300 hover:border-slate-500 hover:text-white'
+              ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:scale-[1.02] active:scale-95'
+              : 'border border-slate-600 text-slate-300 hover:border-slate-500 hover:text-white hover:scale-[1.02] active:scale-95'
           }`}>
           Contactar por WhatsApp
         </button>
@@ -87,8 +80,8 @@ function PlanCard({ p, i, navigate }) {
         <button onClick={() => navigate('/register')}
           className={`mt-6 w-full rounded-xl py-2.5 text-sm font-semibold transition-all ${
             p.popular
-              ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/25 hover:shadow-xl'
-              : 'border border-slate-600 text-slate-300 hover:border-slate-500 hover:text-white'
+              ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:scale-[1.02] active:scale-95'
+              : 'border border-slate-600 text-slate-300 hover:border-slate-500 hover:text-white hover:scale-[1.02] active:scale-95'
           }`}>
           {p.cta}
         </button>
@@ -100,7 +93,25 @@ function PlanCard({ p, i, navigate }) {
           </span>
         </div>
       )}
-    </motion.div>
+    </>
+  );
+  return (
+    <>
+    {showLead && <LeadModal planName={p.name} onClose={() => setShowLead(false)} />}
+    {p.popular ? (
+      <div className="relative rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-500 p-[1px] shadow-xl shadow-indigo-500/10 scale-105 z-10">
+        <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
+          className="rounded-2xl bg-slate-900 p-6 transition-all flex flex-col hover:-translate-y-1 hover:shadow-2xl">
+          {cardContent}
+        </motion.div>
+      </div>
+    ) : (
+      <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
+        className="relative rounded-2xl border border-white/10 bg-white/5 p-6 transition-all flex flex-col hover:-translate-y-1 hover:border-white/20 hover:shadow-xl">
+        {cardContent}
+      </motion.div>
+    )}
+    </>
   );
 }
 
@@ -117,6 +128,9 @@ export default function Landing() {
             <span className="text-lg font-bold text-white">Synex</span>
           </div>
           <div className="flex items-center gap-4">
+            <a href="https://wa.me/573332361814" target="_blank" rel="noopener noreferrer" className="hidden sm:inline text-sm text-slate-400 hover:text-emerald-400 transition-colors">
+              +57 333 236 1814
+            </a>
             <Link to="/login" className="text-sm text-slate-300 hover:text-white transition-colors">Iniciar Sesión</Link>
             <Link to="/register"
               className="rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-xl hover:shadow-indigo-500/30">
@@ -131,6 +145,7 @@ export default function Landing() {
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -left-40 -top-40 h-96 w-96 rounded-full bg-indigo-500/20 blur-3xl" />
           <div className="absolute -bottom-40 -right-40 h-96 w-96 rounded-full from-purple-500/20 blur-3xl" />
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px]" />
         </div>
         <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} className="relative mx-auto max-w-4xl text-center">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-4 py-1.5 text-xs text-indigo-300">
@@ -179,7 +194,7 @@ export default function Landing() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((f, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                className="group rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition-all hover:border-indigo-500/30 hover:bg-white/10">
+                className="group rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition-all hover:-translate-y-1 hover:border-indigo-500/30 hover:bg-white/10 hover:shadow-xl">
                 <div className={`mb-4 inline-flex rounded-xl bg-gradient-to-br ${f.color} p-3`}>
                   <f.icon className="h-6 w-6 text-white" />
                 </div>
