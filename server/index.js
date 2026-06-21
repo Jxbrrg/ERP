@@ -178,6 +178,8 @@ app.delete('/api/admin/companies/:id', ah(async (req, res) => {
   if (!company) return res.status(404).json({ error: 'Empresa no encontrada' });
 
   // Delete all related data (cascade delete)
+  await db.run('DELETE FROM payment_history WHERE company_id = ?', companyId);
+  await db.run('DELETE FROM company_subscriptions WHERE company_id = ?', companyId);
   await db.run('DELETE FROM notifications WHERE company_id = ?', companyId);
   await db.run('DELETE FROM tasks WHERE company_id = ?', companyId);
   await db.run('DELETE FROM projects WHERE company_id = ?', companyId);
@@ -289,6 +291,7 @@ app.use('/api/sales', require('./routes/sales'));
 app.use('/api/accounting', require('./routes/accounting'));
 app.use('/api/crm', require('./routes/crm'));
 app.use('/api/projects', require('./routes/projects'));
+app.use('/api/billing', require('./routes/billing'));
 
 app.get('/api/notifications', ah(async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'No autenticado' });

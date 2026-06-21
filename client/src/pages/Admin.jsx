@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Building2, Users, CreditCard, TrendingUp, ArrowLeft, Eye, Image, Palette, Save, X, Trash2 } from 'lucide-react';
+import { Building2, Users, CreditCard, TrendingUp, ArrowLeft, Eye, Image, Palette, Save, X, Trash2, DollarSign, Activity, Ban } from 'lucide-react';
 import { apiFetch } from '../api/fetch';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
@@ -14,12 +14,18 @@ export default function Admin() {
   const [branding, setBranding] = useState({ logo_url: '', primary_color: '', secondary_color: '' });
   const [brandingLoading, setBrandingLoading] = useState(false);
   const [logoPreview, setLogoPreview] = useState('');
+  const [tab, setTab] = useState('companies');
+  const [billingData, setBillingData] = useState(null);
 
   useEffect(() => {
     apiFetch(__API_URL__ + '/api/admin/companies')
       .then(r => r.json())
       .then(data => { setCompanies(data); setLoading(false); })
       .catch(() => setLoading(false));
+    apiFetch(__API_URL__ + '/api/billing/admin/overview')
+      .then(r => r.json())
+      .then(setBillingData)
+      .catch(() => {});
   }, []);
 
   const updatePlan = async (id, plan) => {
@@ -118,6 +124,17 @@ export default function Admin() {
         </button>
       </div>
 
+      {/* Tabs */}
+      <div className="flex gap-2 border-b border-slate-200 dark:border-slate-700">
+        <button onClick={() => setTab('companies')} className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-[1px] ${tab === 'companies' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
+          <Building2 className="h-4 w-4 inline mr-1" /> Empresas
+        </button>
+        <button onClick={() => setTab('billing')} className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-[1px] ${tab === 'billing' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
+          <DollarSign className="h-4 w-4 inline mr-1" /> Facturación
+        </button>
+      </div>
+
+      {tab === 'companies' && (<>
       <div className="grid gap-4 sm:grid-cols-4">
         {[
           { label: 'Empresas', value: companies.length, icon: Building2, color: 'text-indigo-500' },
@@ -274,6 +291,69 @@ export default function Admin() {
             </div>
           </motion.div>
         </motion.div>
+      )}
+      </>)}
+
+      {tab === 'billing' && (
+        <div className="space-y-6">
+          <div className="grid gap-4 sm:grid-cols-4">
+            {[
+              { label: 'Suscripciones activas', value: billingData?.stats?.totalActive || 0, icon: Activity, color: 'text-emerald-500' },
+              { label: 'Morosos', value: billingData?.stats?.totalPastDue || 0, icon: Ban, color: 'text-rose-500' },
+              { label: 'Canceladas', value: billingData?.stats?.totalCancelled || 0, icon: X, color: 'text-slate-400' },
+              { label: 'MRR', value: '$' + ((billingData?.stats?.monthlyRecurring || 0)).toLocaleString('es-CO'), icon: DollarSign, color: 'text-indigo-500' },
+            ].map((stat, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                className="glass rounded-2xl p-5">
+                <div className="flex items-center gap-3">
+                  <div className={`rounded-xl bg-slate-100 p-2.5 dark:bg-slate-800 ${stat.color}`}>
+                    <stat.icon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400">{stat.label}</p>
+                    <p className="text-xl font-bold text-slate-800 dark:text-white">{stat.value}</p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="glass rounded-2xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-700">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Empresa</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Plan</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Precio</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Estado</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Próximo cobro</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Epayco ID</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(billingData?.subscriptions || []).map((s, i) => (
+                    <motion.tr key={s.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
+                      className="border-b border-slate-100 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50">
+                      <td className="px-4 py-3 font-medium text-slate-800 dark:text-white">{s.company_name}</td>
+                      <td className="px-4 py-3 text-slate-500 capitalize">{s.plan_name || '—'}</td>
+                      <td className="px-4 py-3 text-slate-500">${Number(s.price || 0).toLocaleString('es-CO')}</td>
+                      <td className="px-4 py-3">
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                          s.status === 'active' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' :
+                          s.status === 'past_due' ? 'bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400' :
+                          'bg-slate-100 text-slate-500 dark:bg-slate-700'
+                        }`}>{s.status}</span>
+                      </td>
+                      <td className="px-4 py-3 text-slate-500">{s.current_period_end ? new Date(s.current_period_end).toLocaleDateString('es') : '—'}</td>
+                      <td className="px-4 py-3 text-slate-400 font-mono text-[10px]">{s.epayco_subscription_id || '—'}</td>
+                    </motion.tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

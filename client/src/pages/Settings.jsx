@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Palette, Key, Copy, Check, RefreshCw, Image, Save } from 'lucide-react';
+import { Palette, Key, Copy, Check, RefreshCw, Image, Save, CreditCard, Calendar, XCircle, Loader2 } from 'lucide-react';
 import { apiFetch } from '../api/fetch';
 import useAuthStore from '../store/authStore';
 
@@ -14,6 +14,11 @@ export default function Settings() {
   const [copied, setCopied] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [subscription, setSubscription] = useState(null);
+  const [plans, setPlans] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [subLoading, setSubLoading] = useState(true);
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     apiFetch(__API_URL__ + '/api/company/branding')
@@ -28,7 +33,29 @@ export default function Settings() {
       .then(r => r.json())
       .then(data => setApiKey(data.apiKey))
       .catch(() => {});
+    apiFetch(__API_URL__ + '/api/billing/plans')
+      .then(r => r.json())
+      .then(setPlans)
+      .catch(() => {});
+    apiFetch(__API_URL__ + '/api/billing/company/subscription')
+      .then(r => r.json())
+      .then(data => { setSubscription(data); setSubLoading(false); })
+      .catch(() => setSubLoading(false));
+    apiFetch(__API_URL__ + '/api/billing/company/payments')
+      .then(r => r.json())
+      .then(setPayments)
+      .catch(() => {});
   }, []);
+
+  const cancelSubscription = async () => {
+    if (!confirm('¿Cancelar suscripción? Perderás acceso a funciones premium al final del período.')) return;
+    if (!confirm('¿Estás seguro? Escribe CANCELAR para confirmar.')) return;
+    if (prompt('Escribe CANCELAR para confirmar') !== 'CANCELAR') return alert('Cancelado');
+    setCancelling(true);
+    await apiFetch(__API_URL__ + '/api/billing/company/subscription/cancel', { method: 'PUT' });
+    setSubscription({ ...subscription, status: 'cancelled' });
+    setCancelling(false);
+  };
 
   const saveBranding = async () => {
     setSaving(true);
@@ -173,6 +200,82 @@ export default function Settings() {
             </pre>
           </div>
         </div>
+      </motion.div>
+
+      {/* Subscription */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+        className="glass rounded-2xl p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="rounded-xl bg-emerald-50 p-2.5 dark:bg-emerald-500/10">
+            <CreditCard className="h-5 w-5 text-emerald-500" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-slate-800 dark:text-white">Suscripción</h2>
+            <p className="text-xs text-slate-400">Gestiona tu plan y pagos</p>
+          </div>
+        </div>
+
+        {subLoading ? (
+          <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-slate-400" /></div>
+        ) : subscription?.active ? (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between rounded-xl bg-slate-50 p-4 dark:bg-slate-800/50">
+              <div>
+                <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Plan actual</p>
+                <p className="text-lg font-bold text-slate-900 dark:text-white capitalize">{subscription.plan_name || subscription.companyPlan}</p>
+              </div>
+              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400">Activo</span>
+            </div>
+            {subscription.current_period_end && (
+              <div className="flex items-center gap-2 text-sm text-slate-500">
+                <Calendar className="h-4 w-4" />
+                Próximo cobro: {new Date(subscription.current_period_end).toLocaleDateString('es')}
+              </div>
+            )}
+            <button onClick={cancelSubscription} disabled={cancelling}
+              className="flex items-center gap-2 rounded-xl border border-rose-200 px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-400 transition-colors disabled:opacity-50">
+              <XCircle className="h-4 w-4" /> {cancelling ? 'Cancelando...' : 'Cancelar suscripción'}
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-sm text-slate-500">No tienes suscripción activa.</p>
+            <div className="grid gap-4 sm:grid-cols-3">
+              {plans.map((p, i) => (
+                <div key={i} className="rounded-xl border border-slate-200 p-4 dark:border-slate-700">
+                  <h3 className="font-semibold text-slate-800 dark:text-white">{p.name}</h3>
+                  <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">${Number(p.price).toLocaleString('es-CO')}<span className="text-sm font-normal text-slate-400">/mes</span></p>
+                  <p className="text-xs text-slate-400 mt-1">{p.description}</p>
+                  <ul className="mt-3 space-y-1">
+                    {(typeof p.features === 'string' ? JSON.parse(p.features) : p.features || []).map((f, j) => (
+                      <li key={j} className="text-xs text-slate-500 flex items-center gap-1"><Check className="h-3 w-3 text-emerald-400" />{f}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-slate-400">Cuando tengas las credenciales de Epayco, aparecerá la opción de pago aquí.</p>
+          </div>
+        )}
+
+        {payments.length > 0 && (
+          <div className="mt-6 border-t border-slate-200 pt-4 dark:border-slate-700">
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Historial de pagos</h3>
+            <div className="space-y-2">
+              {payments.map((p, i) => (
+                <div key={i} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800/50">
+                  <div>
+                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300">${Number(p.amount).toLocaleString('es-CO')}</p>
+                    <p className="text-xs text-slate-400">{new Date(p.date || p.created_at).toLocaleDateString('es')}</p>
+                  </div>
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                    p.status === 'completed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400'
+                  }`}>{p.status}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </motion.div>
     </div>
   );

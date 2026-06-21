@@ -183,7 +183,20 @@ const initDb = () => {
     CREATE TABLE IF NOT EXISTS projects (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), code TEXT NOT NULL, name TEXT NOT NULL, description TEXT, customer_id TEXT REFERENCES customers(id), start_date TEXT NOT NULL, end_date TEXT, budget REAL, status TEXT DEFAULT 'planning' CHECK(status IN ('planning','active','paused','completed','cancelled')), priority TEXT DEFAULT 'medium' CHECK(priority IN ('low','medium','high','critical')), created_by TEXT REFERENCES users(id), created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(company_id, code));
     CREATE TABLE IF NOT EXISTS tasks (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), project_id TEXT REFERENCES projects(id) ON DELETE CASCADE, name TEXT NOT NULL, description TEXT, assigned_to TEXT REFERENCES employees(id), status TEXT DEFAULT 'pending' CHECK(status IN ('pending','in_progress','review','completed')), priority TEXT DEFAULT 'medium' CHECK(priority IN ('low','medium','high','critical')), due_date TEXT, estimated_hours REAL, actual_hours REAL DEFAULT 0, created_by TEXT REFERENCES users(id), created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
     CREATE TABLE IF NOT EXISTS notifications (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), user_id TEXT REFERENCES users(id), title TEXT NOT NULL, message TEXT, type TEXT DEFAULT 'info' CHECK(type IN ('info','success','warning','error')), read INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
+    CREATE TABLE IF NOT EXISTS billing_plans (id TEXT PRIMARY KEY, code TEXT UNIQUE NOT NULL, name TEXT NOT NULL, description TEXT, price REAL NOT NULL, currency TEXT DEFAULT 'COP', interval TEXT DEFAULT 'month', features TEXT, active INTEGER DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
+    CREATE TABLE IF NOT EXISTS company_subscriptions (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), plan_id TEXT REFERENCES billing_plans(id), epayco_customer_id TEXT, epayco_subscription_id TEXT, status TEXT DEFAULT 'active' CHECK(status IN ('active','past_due','cancelled','expired')), current_period_start DATETIME, current_period_end DATETIME, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
+    CREATE TABLE IF NOT EXISTS payment_history (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), subscription_id TEXT REFERENCES company_subscriptions(id), epayco_ref TEXT, amount REAL NOT NULL, currency TEXT DEFAULT 'COP', status TEXT DEFAULT 'completed', date TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
   `);
+
+  // Seed default plans if empty
+  const existingPlans = db.prepare('SELECT COUNT(*) as c FROM billing_plans').get();
+  if (existingPlans.c === 0) {
+    const epaycoSvc = require('./services/epayco');
+    const insert = db.prepare('INSERT INTO billing_plans (id, code, name, description, price, currency, interval, features, active) VALUES (?,?,?,?,?,?,?,?,1)');
+    for (const p of epaycoSvc.DEFAULT_PLANS) {
+      insert.run(uuidv4(), p.code, p.name, p.description, p.price, p.currency, p.interval, JSON.stringify(p.features));
+    }
+  }
 
   // Migration: add columns to existing tables (safe if already exist)
   const migrations = [

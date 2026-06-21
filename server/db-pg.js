@@ -126,6 +126,61 @@ async function doInit() {
       );
     `);
 
+    // Billing tables
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS billing_plans (
+        id TEXT PRIMARY KEY,
+        code TEXT UNIQUE NOT NULL,
+        name TEXT NOT NULL,
+        description TEXT,
+        price REAL NOT NULL,
+        currency TEXT DEFAULT 'COP',
+        interval TEXT DEFAULT 'month',
+        features TEXT,
+        active INTEGER DEFAULT 1,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS company_subscriptions (
+        id TEXT PRIMARY KEY,
+        company_id TEXT REFERENCES companies(id),
+        plan_id TEXT REFERENCES billing_plans(id),
+        epayco_customer_id TEXT,
+        epayco_subscription_id TEXT,
+        status TEXT DEFAULT 'active' CHECK(status IN ('active','past_due','cancelled','expired')),
+        current_period_start TIMESTAMPTZ,
+        current_period_end TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS payment_history (
+        id TEXT PRIMARY KEY,
+        company_id TEXT REFERENCES companies(id),
+        subscription_id TEXT REFERENCES company_subscriptions(id),
+        epayco_ref TEXT,
+        amount REAL NOT NULL,
+        currency TEXT DEFAULT 'COP',
+        status TEXT DEFAULT 'completed',
+        date TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_subs_company ON company_subscriptions(company_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_subs_epayco ON company_subscriptions(epayco_subscription_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_payments_company ON payment_history(company_id)`);
+
+    // Seed default plans if empty
+    const planCount = (await pool.query('SELECT COUNT(*) as c FROM billing_plans')).rows[0].c;
+    if (parseInt(planCount) === 0) {
+      const epaycoSvc = require('./services/epayco');
+      for (const p of epaycoSvc.DEFAULT_PLANS) {
+        await pool.query(q('INSERT INTO billing_plans (id, code, name, description, price, currency, interval, features, active) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,1)',
+          [require('uuid').v4(), p.code, p.name, p.description, p.price, p.currency, p.interval, JSON.stringify(p.features)]));
+      }
+    }
+
     // Migrations: add missing columns
     await pool.query(`
       ALTER TABLE companies ADD COLUMN IF NOT EXISTS plan_expires_at TIMESTAMPTZ
