@@ -369,7 +369,7 @@ app.post('/api/notifications/:id/read', ah(async (req, res) => {
 // === Branding ===
 app.get('/api/company/branding', ah(async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'No autenticado' });
-  const company = await db.get('SELECT logo_url, primary_color, secondary_color FROM companies WHERE id = ?', req.companyId);
+  const company = await db.get('SELECT name, slug, logo_url, primary_color, secondary_color FROM companies WHERE id = ?', req.companyId);
   res.json(company);
 }));
 
