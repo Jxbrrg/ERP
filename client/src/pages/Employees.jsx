@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Edit2, Trash2, UserCheck, UserX } from 'lucide-react';
+import { Plus, Edit2, Trash2, UserCheck, UserX, Shield, ShieldCheck, Eye } from 'lucide-react';
 import DataTable from '../components/DataTable';
 import { apiFetch } from '../api/fetch';
 
@@ -39,6 +39,12 @@ export default function Employees() {
     { key: 'email', label: 'Email' },
     { key: 'position', label: 'Cargo' },
     { key: 'department', label: 'Departamento' },
+    { key: 'role', label: 'Rol', render: r => {
+      const roles = { admin: { label: 'Admin', icon: Shield, color: 'text-purple-500 bg-purple-500/10' }, editor: { label: 'Editor', icon: ShieldCheck, color: 'text-blue-500 bg-blue-500/10' }, viewer: { label: 'Visor', icon: Eye, color: 'text-slate-500 bg-slate-500/10' } };
+      const role = roles[r.role] || roles.editor;
+      const Icon = role.icon;
+      return <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${role.color}`}><Icon className="h-3 w-3" />{role.label}</span>;
+    }},
     { key: 'salary', label: 'Salario', render: r => `$${Number(r.salary).toLocaleString('es-CO')}` },
     { key: 'status', label: 'Estado', render: r => (
       <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
@@ -93,7 +99,8 @@ function EmployeeModal({ onClose, onSave, employee }) {
     department: employee?.department || 'TI',
     salary: employee?.salary || '',
     hire_date: employee?.hire_date || new Date().toISOString().split('T')[0],
-    status: employee?.status || 'active'
+    status: employee?.status || 'active',
+    role: employee?.role || 'editor'
   });
 
   const departments = ['TI', 'Ventas', 'Marketing', 'RRHH', 'Finanzas', 'Operaciones', 'Logística'];
@@ -117,6 +124,12 @@ function EmployeeModal({ onClose, onSave, employee }) {
           </select>
           <Input label="Salario" type="number" value={form.salary} onChange={v => setForm({...form, salary: v})} />
           <Input label="Fecha Contratación" type="date" value={form.hire_date} onChange={v => setForm({...form, hire_date: v})} />
+          <select value={form.role} onChange={e => setForm({...form, role: e.target.value})}
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-400 dark:border-slate-600 dark:bg-slate-800 dark:text-white">
+            <option value="admin">Admin</option>
+            <option value="editor">Editor</option>
+            <option value="viewer">Visor</option>
+          </select>
           <select value={form.status} onChange={e => setForm({...form, status: e.target.value})}
             className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-400 dark:border-slate-600 dark:bg-slate-800 dark:text-white">
             <option value="active">Activo</option>

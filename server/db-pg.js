@@ -198,6 +198,9 @@ async function doInit() {
       )
     `);
 
+    // Migration: add role column to employees
+    await pool.query("ALTER TABLE employees ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'editor'").catch(() => {});
+
     // Seed / upsert default billing plans
     const epaycoSvc = require('./services/epayco');
     for (const p of epaycoSvc.DEFAULT_PLANS) {

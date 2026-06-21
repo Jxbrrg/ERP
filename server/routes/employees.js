@@ -20,21 +20,21 @@ router.get('/:id', ah(async (req, res) => {
 
 router.post('/', ah(async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'No autenticado' });
-  const { name, email, phone, position, department, salary, hire_date } = req.body;
+  const { name, email, phone, position, department, salary, hire_date, role } = req.body;
   const id = uuidv4();
   const result = await db.get('SELECT COUNT(*) as c FROM employees WHERE company_id = ?', req.companyId);
   const code = `EMP-${String((result.c || 0) + 1).padStart(3, '0')}`;
-  await db.run(`INSERT INTO employees (id,code,name,email,phone,position,department,salary,hire_date,company_id,created_by)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?)`, id, code, name, email, phone, position, department, salary, hire_date, req.companyId, req.user.id);
+  await db.run(`INSERT INTO employees (id,code,name,email,phone,position,department,salary,hire_date,company_id,created_by,role)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`, id, code, name, email, phone, position, department, salary, hire_date, req.companyId, req.user.id, role || 'editor');
   const emp = await db.get('SELECT * FROM employees WHERE id = ? AND company_id = ?', id, req.companyId);
   res.status(201).json(emp);
 }));
 
 router.put('/:id', ah(async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'No autenticado' });
-  const { name, email, phone, position, department, salary, status } = req.body;
-  await db.run(`UPDATE employees SET name=?,email=?,phone=?,position=?,department=?,salary=?,status=? WHERE id=? AND company_id=?`,
-    name, email, phone, position, department, salary, status, req.params.id, req.companyId);
+  const { name, email, phone, position, department, salary, status, role } = req.body;
+  await db.run(`UPDATE employees SET name=?,email=?,phone=?,position=?,department=?,salary=?,status=?,role=? WHERE id=? AND company_id=?`,
+    name, email, phone, position, department, salary, status, role || 'editor', req.params.id, req.companyId);
   const emp = await db.get('SELECT * FROM employees WHERE id = ? AND company_id = ?', req.params.id, req.companyId);
   res.json(emp);
 }));

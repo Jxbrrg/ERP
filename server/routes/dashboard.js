@@ -41,6 +41,13 @@ router.get('/', ah(async (req, res) => {
     GROUP BY day ORDER BY day
   `, req.companyId);
 
+  const topCustomers = await db.all(`
+    SELECT c.id, c.name, COUNT(o.id) as orders, SUM(o.total) as total
+    FROM customers c JOIN orders o ON c.id = o.customer_id
+    WHERE o.status != 'cancelled' AND c.company_id = ?
+    GROUP BY c.id ORDER BY total DESC LIMIT 5
+  `, req.companyId);
+
   res.json({
     totalEmployees: totalEmployees.count,
     totalProducts: totalProducts.count,

@@ -4,11 +4,13 @@ import { motion } from 'framer-motion';
 import { 
   Users, Package, ShoppingCart, Building2, AlertTriangle,
   TrendingUp, DollarSign, Briefcase, CheckCircle2, Clock,
-  ArrowUpRight, ArrowDownRight
+  ArrowUpRight, ArrowDownRight, Download, FileText, FileSpreadsheet, Award
 } from 'lucide-react';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import StatsCard from '../components/StatsCard';
 import useAuthStore from '../store/authStore';
+import OnboardingTour from '../components/OnboardingTour';
+import { exportPDF, exportExcel } from '../utils/export';
 
 export default function Dashboard() {
   const { user } = useAuthStore();
@@ -82,9 +84,21 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Panel de Control</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400">Resumen ejecutivo del negocio en tiempo real</p>
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-start justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Panel de Control</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Resumen ejecutivo del negocio en tiempo real</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={() => exportPDF('Reporte Dashboard', ['Métrica', 'Valor'], stats.map(s => [s.title, String(s.value)]), 'dashboard.pdf')}
+            className="rounded-xl border border-slate-200 p-2.5 text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800 transition-all" title="Exportar PDF">
+            <FileText className="h-4 w-4" />
+          </button>
+          <button onClick={() => exportExcel('Reporte Dashboard', ['Métrica', 'Valor'], stats.map(s => [s.title, String(s.value)]), 'dashboard.xlsx')}
+            className="rounded-xl border border-slate-200 p-2.5 text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800 transition-all" title="Exportar Excel">
+            <FileSpreadsheet className="h-4 w-4" />
+          </button>
+        </div>
       </motion.div>
 
       {/* Stats Grid */}
@@ -221,6 +235,38 @@ export default function Dashboard() {
           </div>
         </motion.div>
       </div>
+
+      {/* Top Customers */}
+      {data?.topCustomers?.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
+          className="glass rounded-2xl p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-800 dark:text-white">Top Clientes</h3>
+              <p className="text-xs text-slate-400">Por volumen de compras</p>
+            </div>
+            <Award className="h-5 w-5" style={{ color: primaryColor }} />
+          </div>
+          <div className="space-y-2">
+            {data.topCustomers.map((c, i) => (
+              <div key={c.id} className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-2.5 dark:bg-slate-800/50">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold text-white" style={{ background: COLORS[i % COLORS.length] }}>
+                    {i + 1}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{c.name}</p>
+                    <p className="text-xs text-slate-400">{c.orders} órdenes</p>
+                  </div>
+                </div>
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">${Number(c.total).toLocaleString('es-CO')}</p>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      <OnboardingTour />
     </div>
   );
 }

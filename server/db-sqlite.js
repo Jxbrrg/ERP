@@ -201,6 +201,7 @@ const initDb = () => {
   const migrations = [
     `ALTER TABLE users ADD COLUMN company_id TEXT REFERENCES companies(id)`,
     `ALTER TABLE employees ADD COLUMN company_id TEXT REFERENCES companies(id)`,
+    `ALTER TABLE employees ADD COLUMN role TEXT DEFAULT 'editor'`,
     `ALTER TABLE categories ADD COLUMN company_id TEXT REFERENCES companies(id)`,
     `ALTER TABLE products ADD COLUMN company_id TEXT REFERENCES companies(id)`,
     `ALTER TABLE customers ADD COLUMN company_id TEXT REFERENCES companies(id)`,
