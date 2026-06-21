@@ -192,10 +192,12 @@ export default function Login() {
               </form>
             )}
 
-            <p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
-              ¿No tienes empresa?{' '}
-              <Link to="/register" className="font-medium text-indigo-500 hover:text-indigo-400">Crear cuenta</Link>
-            </p>
+              <p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
+                ¿No tienes empresa?{' '}
+                <Link to="/register" className="font-medium text-indigo-500 hover:text-indigo-400">Crear cuenta</Link>
+              </p>
+              <p className="mt-4 text-center text-[10px] text-slate-500/60">&copy; {new Date().getFullYear()} Synex by Jhossuar</p>
+            </div>
           </div>
         </motion.div>
       </div>

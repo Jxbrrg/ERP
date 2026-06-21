@@ -94,7 +94,7 @@ function SidebarView({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
             <p className="text-xs font-medium" style={{ color: brandColor }}>
               {isSuperAdmin ? 'Panel de control CEO' : '¿Necesitas ayuda?'}
             </p>
-            <p className="mt-1 text-[10px]" style={{ color: brandColor + '99' }}>Versión 1.0.0</p>
+            <p className="mt-1 text-[10px]" style={{ color: brandColor + '99' }}>Synex by Jhossuar</p>
           </div>
         )}
       </div>

@@ -229,7 +229,7 @@ export default function Landing() {
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <div className="flex items-center gap-2 text-sm text-slate-400">
             <img src="/Synex.png" alt="Synex" className="h-6 w-6 rounded-lg" />
-            &copy; {new Date().getFullYear()} Synex. Todos los derechos reservados.
+            &copy; {new Date().getFullYear()} Synex by Jhossuar. Todos los derechos reservados.
           </div>
           <div className="flex gap-6 text-sm text-slate-400">
             <Link to="/login" className="hover:text-white transition-colors">Iniciar Sesión</Link>
