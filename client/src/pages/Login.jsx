@@ -198,7 +198,6 @@ export default function Login() {
               </p>
               <p className="mt-4 text-center text-[10px] text-slate-500/60">&copy; {new Date().getFullYear()} Synex by Jhossuar</p>
             </div>
-          </div>
         </motion.div>
       </div>
     </div>
