@@ -230,16 +230,22 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* CTA */}
+      {/* WhatsApp CTA */}
       <section className="relative px-4 py-20">
         <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }}
-          className="mx-auto max-w-3xl rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-600 p-12 text-center shadow-2xl">
-          <h2 className="text-3xl font-bold text-white">¿Listo para transformar tu empresa?</h2>
-          <p className="mt-3 text-lg text-indigo-100">14 días gratis. Sin tarjeta de crédito.</p>
-          <button onClick={() => navigate('/register')}
-            className="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3 text-sm font-semibold text-indigo-600 shadow-lg transition-all hover:shadow-xl">
-            Crear cuenta gratis <ChevronRight className="h-4 w-4" />
-          </button>
+          className="mx-auto max-w-2xl text-center">
+          <div className="mb-6 inline-flex rounded-full bg-emerald-500/10 p-3">
+            <MessageSquare className="h-8 w-8 text-emerald-400" />
+          </div>
+          <h2 className="text-3xl font-bold text-white lg:text-4xl">¿Hablamos?</h2>
+          <p className="mx-auto mt-3 max-w-lg text-slate-400">
+            Resuelve tus dudas directamente con nuestro equipo. Te respondemos en minutos.
+          </p>
+          <a href="https://wa.me/573332361814?text=Hola%20Synex%2C%20quiero%20informaci%C3%B3n%20sobre%20los%20planes" target="_blank" rel="noopener noreferrer"
+            className="mt-8 inline-flex items-center gap-3 rounded-xl bg-emerald-500 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-emerald-500/25 transition-all hover:bg-emerald-400 hover:shadow-xl hover:scale-[1.02] active:scale-95">
+            <MessageSquare className="h-5 w-5" />
+            Hablar con asesor
+          </a>
         </motion.div>
       </section>
 
