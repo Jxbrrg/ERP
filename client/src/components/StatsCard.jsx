@@ -14,14 +14,14 @@ export default function StatsCard({ title, value, icon: Icon, color, suffix, tre
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-500">
             {title}
           </p>
           <div className="mt-2 flex items-baseline gap-1">
             <span className="text-2xl font-bold tracking-tight text-slate-800 dark:text-white">
               {typeof value === 'number' ? value.toLocaleString('es-CO') : value}
             </span>
-            {suffix && <span className="text-sm text-slate-400">{suffix}</span>}
+            {suffix && <span className="text-sm text-slate-500">{suffix}</span>}
           </div>
           {trend && (
             <p className={`mt-1 text-xs ${trend > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>

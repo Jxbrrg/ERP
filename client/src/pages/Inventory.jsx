@@ -47,10 +47,10 @@ export default function Inventory() {
     }},
     { key: 'actions', label: '', render: r => (
       <div className="flex gap-1" onClick={e => e.stopPropagation()}>
-        <button onClick={() => { setEditProd(r); setShowModal(true); }} className="rounded-lg p-1.5 text-slate-400 hover:text-indigo-500">
+        <button onClick={() => { setEditProd(r); setShowModal(true); }} className="rounded-lg p-1.5 text-slate-500 hover:text-indigo-500">
           <Edit2 className="h-3.5 w-3.5" />
         </button>
-        <button onClick={() => handleDelete(r.id)} className="rounded-lg p-1.5 text-slate-400 hover:text-rose-500">
+        <button onClick={() => handleDelete(r.id)} className="rounded-lg p-1.5 text-slate-500 hover:text-rose-500">
           <Trash2 className="h-3.5 w-3.5" />
         </button>
       </div>
@@ -62,7 +62,7 @@ export default function Inventory() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Inventario</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">{products.length} productos · {products.filter(p => p.stock <= p.min_stock).length} con stock crítico</p>
+          <p className="text-sm text-slate-600 dark:text-slate-400">{products.length} productos · {products.filter(p => p.stock <= p.min_stock).length} con stock crítico</p>
         </div>
         <button onClick={() => { setEditProd(null); setShowModal(true); }}
           className="gradient-success flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 transition-all hover:shadow-xl active:scale-95">
@@ -121,7 +121,7 @@ function ProductModal({ onClose, onSave, product }) {
 function Input({ label, type = 'text', value, onChange, className = '' }) {
   return (
     <div className={className}>
-      <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">{label}</label>
+      <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">{label}</label>
       <input type={type} value={value} onChange={e => onChange(e.target.value)}
         className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white" />
     </div>

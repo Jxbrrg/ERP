@@ -13,20 +13,12 @@ const fetchBranding = async (token) => {
 const useAuthStore = create((set) => ({
   user: null,
   loading: true,
-  darkMode: localStorage.getItem('synex-dark') === 'true',
   impersonating: false,
 
   setUser: (user) => set({ user, loading: false }),
   setLoading: (loading) => set({ loading }),
 
   getToken: () => localStorage.getItem('synex_token'),
-
-  toggleDark: () => set((state) => {
-    const newDark = !state.darkMode;
-    localStorage.setItem('synex-dark', newDark);
-    document.documentElement.classList.toggle('dark', newDark);
-    return { darkMode: newDark };
-  }),
 
   checkAuth: async () => {
     const token = localStorage.getItem('synex_token');
@@ -72,11 +64,11 @@ const useAuthStore = create((set) => ({
     return user;
   },
 
-  register: async (companyName, name, email, password, logoBase64, primary_color, secondary_color) => {
+  register: async (companyName, name, email, password, phone, nit, logoBase64, primary_color, secondary_color) => {
     const res = await fetch(__API_URL__ + '/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ companyName, name, email, password, logoBase64, primary_color, secondary_color })
+      body: JSON.stringify({ companyName, name, email, password, phone, nit, logoBase64, primary_color, secondary_color })
     });
     if (!res.ok) {
       const err = await res.json();

@@ -4,6 +4,8 @@ const epayco = require('../services/epayco');
 const router = express.Router();
 const ah = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
+router.use('/epayco-checkout', express.urlencoded({ extended: true }));
+
 router.get('/plans', ah(async (req, res) => {
   const plans = await db.all('SELECT * FROM billing_plans WHERE active = 1 ORDER BY price ASC');
   if (plans.length === 0) {
@@ -89,6 +91,56 @@ router.get('/company/payments', ah(async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'No autenticado' });
   const payments = await db.all('SELECT * FROM payment_history WHERE company_id = ? ORDER BY created_at DESC LIMIT 50', req.companyId);
   res.json(payments);
+}));
+
+router.post('/epayco-checkout', ah(async (req, res) => {
+  const { company_id, plan_code } = req.query;
+  const data = req.body;
+  const codResponse = data.x_cod_response || data.cod_response;
+  const responseText = data.x_response || data.response;
+  const refPayco = data.x_ref_payco || data.ref_payco;
+  const amount = data.x_amount || data.amount;
+  const currency = data.x_currency_code || data.currency_code || 'COP';
+  const isApproved = codResponse == 1 || responseText === 'Aceptada';
+
+  if (!company_id || !plan_code) {
+    return res.status(400).send('Missing company_id or plan_code');
+  }
+
+  if (!isApproved) {
+    return res.send('Payment not approved');
+  }
+
+  const existingSub = await db.get('SELECT * FROM company_subscriptions WHERE company_id = ? AND status IN (\'active\', \'past_due\') LIMIT 1', company_id);
+  if (existingSub) {
+    const payId = require('uuid').v4();
+    await db.run(`INSERT INTO payment_history (id, company_id, subscription_id, epayco_ref, amount, currency, status, date, created_at)
+      VALUES (?,?,?,?,?,?,?,datetime('now'),datetime('now'))`,
+      payId, company_id, existingSub.id, refPayco, amount, currency, 'completed');
+    const periodEnd = new Date(); periodEnd.setMonth(periodEnd.getMonth() + 1);
+    await db.run('UPDATE company_subscriptions SET status = ?, current_period_end = ? WHERE id = ?', 'active', periodEnd.toISOString(), existingSub.id);
+    await db.run('UPDATE companies SET plan_expires_at = ? WHERE id = ?', periodEnd.toISOString(), company_id);
+    return res.send('Payment recorded for existing subscription');
+  }
+
+  let plan = await db.get('SELECT * FROM billing_plans WHERE code = ? AND active = 1', plan_code);
+  if (!plan) {
+    plan = epayco.DEFAULT_PLANS.find(p => p.code === plan_code);
+    if (!plan) return res.status(400).send('Invalid plan');
+  }
+
+  const subId = require('uuid').v4();
+  const now = new Date();
+  const periodEnd = new Date(); periodEnd.setMonth(periodEnd.getMonth() + 1);
+  await db.run(`INSERT INTO company_subscriptions (id, company_id, plan_id, epayco_subscription_id, status, current_period_start, current_period_end, created_at)
+    VALUES (?,?,?,?,?,?,?,?)`,
+    subId, company_id, plan.id, refPayco, 'active', now.toISOString(), periodEnd.toISOString(), now.toISOString());
+  await db.run('UPDATE companies SET plan = ?, plan_expires_at = ? WHERE id = ?', plan_code, periodEnd.toISOString(), company_id);
+  await db.run(`INSERT INTO payment_history (id, company_id, subscription_id, epayco_ref, amount, currency, status, date, created_at)
+    VALUES (?,?,?,?,?,?,?,?,?)`,
+    require('uuid').v4(), company_id, subId, refPayco, amount, currency, 'completed', now.toISOString(), now.toISOString());
+
+  res.send('ok');
 }));
 
 router.post('/webhook', ah(async (req, res) => {

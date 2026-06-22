@@ -48,16 +48,16 @@ export default function Projects() {
       </span>
     )},
     { key: 'priority', label: 'Prioridad', render: r => {
-      const p = { low: 'text-slate-400', medium: 'text-amber-500', high: 'text-orange-500', critical: 'text-rose-500' };
+      const p = { low: 'text-slate-500', medium: 'text-amber-500', high: 'text-orange-500', critical: 'text-rose-500' };
       return <span className={`font-semibold text-xs ${p[r.priority] || p.medium}`}>{r.priority}</span>;
     }},
     { key: 'budget', label: 'Presupuesto', render: r => `$${Number(r.budget).toLocaleString('es-CO')}` },
     { key: 'actions', label: '', render: r => (
       <div className="flex gap-1" onClick={e => e.stopPropagation()}>
-        <button onClick={() => { setEditProj(r); setShowModal(true); }} className="rounded-lg p-1.5 text-slate-400 hover:text-indigo-500">
+        <button onClick={() => { setEditProj(r); setShowModal(true); }} className="rounded-lg p-1.5 text-slate-500 hover:text-indigo-500">
           <Plus className="h-3.5 w-3.5" />
         </button>
-        <button onClick={() => setSelectedProj(r)} className="rounded-lg p-1.5 text-slate-400 hover:text-cyan-500">
+        <button onClick={() => setSelectedProj(r)} className="rounded-lg p-1.5 text-slate-500 hover:text-cyan-500">
           <ListTodo className="h-3.5 w-3.5" />
         </button>
       </div>
@@ -69,7 +69,7 @@ export default function Projects() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Proyectos</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">{projects.length} proyectos</p>
+          <p className="text-sm text-slate-600 dark:text-slate-400">{projects.length} proyectos</p>
         </div>
         <button onClick={() => { setEditProj(null); setShowModal(true); }}
           className="gradient-primary flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-xl active:scale-95">
@@ -112,7 +112,7 @@ function ProjectModal({ onClose, onSave, project, customers }) {
           <Input label="Nombre" value={form.name} onChange={v => setForm({...form, name: v})} className="col-span-2" />
           <Input label="Descripción" value={form.description} onChange={v => setForm({...form, description: v})} className="col-span-2" />
           <div>
-            <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Cliente</label>
+            <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Cliente</label>
             <select value={form.customer_id} onChange={e => setForm({...form, customer_id: e.target.value})}
               className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-white">
               <option value="">Sin cliente</option>
@@ -120,7 +120,7 @@ function ProjectModal({ onClose, onSave, project, customers }) {
             </select>
           </div>
           <div>
-            <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Prioridad</label>
+            <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Prioridad</label>
             <select value={form.priority} onChange={e => setForm({...form, priority: e.target.value})}
               className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-white">
               <option value="low">Baja</option>
@@ -133,7 +133,7 @@ function ProjectModal({ onClose, onSave, project, customers }) {
           <Input label="Fecha Fin" type="date" value={form.end_date} onChange={v => setForm({...form, end_date: v})} />
           <Input label="Presupuesto" type="number" value={form.budget} onChange={v => setForm({...form, budget: v})} />
           <div>
-            <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Estado</label>
+            <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Estado</label>
             <select value={form.status} onChange={e => setForm({...form, status: e.target.value})}
               className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-white">
               <option value="planning">Planificación</option>
@@ -208,7 +208,7 @@ function ProjectDetail({ project, onClose }) {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="text-xl font-bold text-slate-800 dark:text-white">{detail.name}</h3>
-                <p className="text-sm text-slate-400">{detail.code} · {detail.customer_name || 'Sin cliente'}</p>
+                <p className="text-sm text-slate-500">{detail.code} · {detail.customer_name || 'Sin cliente'}</p>
               </div>
               <span className={`rounded-full px-3 py-1 text-xs font-medium ${statusColors[detail.status] || statusColors.planning}`}>{detail.status}</span>
             </div>
@@ -239,8 +239,8 @@ function ProjectDetail({ project, onClose }) {
                 <div key={key} className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/30">
                   <div className="flex items-center gap-2 mb-3">
                     <Icon className={`h-4 w-4 ${color}`} />
-                    <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{label}</span>
-                    <span className="ml-auto text-xs text-slate-400">{tasksByStatus(key).length}</span>
+                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">{label}</span>
+                    <span className="ml-auto text-xs text-slate-500">{tasksByStatus(key).length}</span>
                   </div>
                   <div className="space-y-2 min-h-[100px]">
                     {tasksByStatus(key).map(task => (
@@ -254,7 +254,7 @@ function ProjectDetail({ project, onClose }) {
                         className="cursor-pointer rounded-lg bg-white p-2.5 shadow-sm transition-all hover:shadow-md dark:bg-slate-800">
                         <p className="text-xs font-medium text-slate-700 dark:text-slate-300">{task.name}</p>
                         <div className="mt-1.5 flex items-center justify-between">
-                          <span className="text-[10px] text-slate-400">{task.assigned_name || 'Sin asignar'}</span>
+                          <span className="text-[10px] text-slate-500">{task.assigned_name || 'Sin asignar'}</span>
                           <span className={`text-[10px] font-semibold ${
                             task.priority === 'critical' ? 'text-rose-500' :
                             task.priority === 'high' ? 'text-orange-500' :
@@ -280,7 +280,7 @@ function ProjectDetail({ project, onClose }) {
 function Input({ label, type = 'text', value, onChange, className = '' }) {
   return (
     <div className={className}>
-      <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">{label}</label>
+      <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">{label}</label>
       <input type={type} value={value} onChange={e => onChange(e.target.value)}
         className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white" />
     </div>

@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { CheckCircle, ArrowLeft, ArrowRight, Star, ChevronDown, Zap, Sparkles, Building2, Globe, Shield, Crown } from 'lucide-react';
 import LeadModal from '../components/LeadModal';
 import ScrollToTop from '../components/ScrollToTop';
+import useAuthStore from '../store/authStore';
 
 const planIcons = [Zap, Sparkles, Building2, Globe, Shield, Crown];
 
@@ -11,37 +12,37 @@ const plans = [
   {
     name: 'Personal', price: '30.000', period: '/mes', color: 'emerald', iconBg: 'bg-emerald-500/20 text-emerald-400',
     desc: 'Para emprendedores independientes', features: ['Panel, Ventas básico', 'Inventario reducido', 'Contabilidad simplificada', '1 usuario · 1 empleado', 'Hasta 40 transacciones/mes', 'Soporte por correo', 'Exportación básica'],
-    cta: 'Probar 14 días gratis', popular: false, trial: true,
+    cta: 'Contratar Plan', popular: false, trial: true,
   },
   {
     name: 'Inicial', price: '50.000', period: '/mes', color: 'amber', iconBg: 'bg-amber-500/20 text-amber-400',
     desc: 'Para empezar formalmente', features: ['Todos los módulos', 'Hasta 2 empleados', '100 transacciones/mes', 'Soporte por correo'],
-    cta: 'Probar 14 días gratis', popular: false, trial: true,
+    cta: 'Contratar Plan', popular: false, trial: true,
   },
   {
-    name: 'Microempresa', price: '80.000', period: '/mes', color: 'orange', iconBg: 'bg-orange-500/20 text-orange-400',
+    name: 'Microempresa', price: '79.999', period: '/mes', color: 'orange', iconBg: 'bg-orange-500/20 text-orange-400',
     desc: 'Para negocios con equipo pequeño', features: ['Todos los módulos', 'Hasta 6 empleados', '300 transacciones/mes', 'Soporte correo y chat', 'Reportes sencillos'],
-    cta: 'Probar 14 días gratis', popular: false, trial: true,
+    cta: 'Contratar Plan', popular: false, trial: true,
   },
   {
     name: 'Negocio', price: '150.000', period: '/mes', color: 'blue', iconBg: 'bg-blue-500/20 text-blue-400',
     desc: 'Para empresas en crecimiento', features: ['Todos los módulos', 'Hasta 15 empleados', 'Transacciones ilimitadas', 'Soporte prioritario', 'API Access', 'Exportación completa', 'Reportes avanzados'],
-    cta: 'Contratar plan', popular: true, badge: 'MÁS POPULAR',
+    cta: 'Contratar Plan', popular: true, badge: 'MÁS POPULAR',
   },
   {
     name: 'Crecimiento Regional', price: '180.000', period: '/mes', color: 'purple', iconBg: 'bg-purple-500/20 text-purple-400',
     desc: 'Para empresas con sucursales', features: ['Todo lo de Negocio', 'Hasta 40 empleados', 'Multisede y almacenes', 'Roles y permisos avanzados', 'Copias de seguridad programadas'],
-    cta: 'Contratar plan', popular: false,
+    cta: 'Contratar Plan', popular: false,
   },
   {
     name: 'Empresarial', price: '230.000', period: '/mes', color: 'rose', iconBg: 'bg-rose-500/20 text-rose-400',
     desc: 'Para grandes organizaciones', features: ['Todo lo de Crecimiento', 'Empleados ilimitados', 'Soporte 24/7', 'Marca propia', 'Gerente de cuenta dedicado', 'On-premise opcional', 'SLA garantizado'],
-    cta: 'Contactar', popular: false,
+    cta: 'Contactar', popular: false, contact: true,
   },
   {
     name: 'Corporativo', price: '360.000', period: '/mes', color: 'slate', iconBg: 'bg-slate-500/20 text-slate-300',
     desc: 'Para grupos empresariales', features: ['Todo lo de Empresarial', 'Multiempresa misma cuenta', 'Informes consolidados', 'Personalización total', 'Capacitación presencial', 'Auditorías periódicas'],
-    cta: 'Contactar', popular: false,
+    cta: 'Contactar', popular: false, contact: true,
   },
 ];
 
@@ -54,7 +55,7 @@ const faq = [
   { q: '¿Ofrecen soporte técnico?', a: 'Sí, desde soporte por correo en planes básicos hasta 24/7 con gerente de cuenta dedicado en planes superiores.' },
 ];
 
-function PlanCard({ p, i, navigate }) {
+function PlanCard({ p, i, navigate, user }) {
   const Icon = planIcons[i % planIcons.length];
   const [showLead, setShowLead] = useState(false);
   const cardContent = (
@@ -81,24 +82,20 @@ function PlanCard({ p, i, navigate }) {
           </li>
         ))}
       </ul>
-      {p.cta === 'Contactar' ? (
+      {p.contact ? (
         <button onClick={() => setShowLead(true)}
-          className={`mt-6 w-full rounded-xl py-2.5 text-sm font-semibold transition-all ${
-            p.popular
-              ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:scale-[1.02] active:scale-95'
-              : 'border border-slate-600 text-slate-300 hover:border-slate-500 hover:text-white hover:scale-[1.02] active:scale-95'
-          }`}>
-          Contactar por WhatsApp
+          className="mt-6 w-full rounded-xl border border-slate-600 py-2.5 text-sm font-semibold text-slate-300 hover:border-slate-500 hover:text-white hover:scale-[1.02] active:scale-95 transition-all">
+          {p.cta} por WhatsApp
         </button>
       ) : (
-        <button onClick={() => navigate('/register')}
-          className={`mt-6 w-full rounded-xl py-2.5 text-sm font-semibold transition-all ${
-            p.popular
-              ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:scale-[1.02] active:scale-95'
-              : 'border border-slate-600 text-slate-300 hover:border-slate-500 hover:text-white hover:scale-[1.02] active:scale-95'
-          }`}>
-          {p.cta}
-        </button>
+      <button onClick={() => navigate(user ? '/settings' : '/register')}
+        className={`mt-6 w-full rounded-xl py-2.5 text-sm font-semibold transition-all ${
+          p.popular
+            ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:scale-[1.02] active:scale-95'
+            : 'border border-slate-600 text-slate-300 hover:border-slate-500 hover:text-white hover:scale-[1.02] active:scale-95'
+        }`}>
+        {p.cta}
+      </button>
       )}
       {p.popular && (
         <div className="mt-3 text-center">
@@ -131,6 +128,7 @@ function PlanCard({ p, i, navigate }) {
 
 export default function Pricing() {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [openFaq, setOpenFaq] = useState(null);
   const [showLeadCta, setShowLeadCta] = useState(false);
 
@@ -164,12 +162,12 @@ export default function Pricing() {
 
           <div className="grid gap-5 lg:grid-cols-3 xl:grid-cols-4">
             {plans.slice(0, 4).map((p, i) => (
-              <PlanCard key={i} p={p} i={i} navigate={navigate} />
+              <PlanCard key={i} p={p} i={i} navigate={navigate} user={user} />
             ))}
           </div>
           <div className="mt-5 grid gap-5 lg:grid-cols-3 max-w-4xl mx-auto">
             {plans.slice(4).map((p, i) => (
-              <PlanCard key={i + 4} p={p} i={i + 4} navigate={navigate} />
+              <PlanCard key={i + 4} p={p} i={i + 4} navigate={navigate} user={user} />
             ))}
           </div>
 

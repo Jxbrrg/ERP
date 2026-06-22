@@ -188,6 +188,9 @@ const initDb = () => {
     CREATE TABLE IF NOT EXISTS payment_history (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), subscription_id TEXT REFERENCES company_subscriptions(id), epayco_ref TEXT, amount REAL NOT NULL, currency TEXT DEFAULT 'COP', status TEXT DEFAULT 'completed', date TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
     CREATE TABLE IF NOT EXISTS leads (id TEXT PRIMARY KEY, name TEXT NOT NULL, company TEXT, phone TEXT NOT NULL, email TEXT, plan_name TEXT NOT NULL, status TEXT DEFAULT 'new' CHECK(status IN ('new','contacted','qualified','lost')), notes TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
     CREATE TABLE IF NOT EXISTS contacts (id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL, phone TEXT, message TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (id TEXT PRIMARY KEY, email TEXT NOT NULL, token TEXT NOT NULL, expires_at DATETIME NOT NULL, used INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
+    CREATE TABLE IF NOT EXISTS api_keys (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), name TEXT NOT NULL, key TEXT NOT NULL UNIQUE, active INTEGER DEFAULT 1, last_used_at DATETIME, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
+    CREATE TABLE IF NOT EXISTS invoice_templates (id TEXT PRIMARY KEY, company_id TEXT UNIQUE REFERENCES companies(id), header_text TEXT DEFAULT '', footer_text TEXT DEFAULT '', terms_text TEXT DEFAULT '', font_family TEXT DEFAULT 'Inter', font_size INTEGER DEFAULT 12, primary_color TEXT DEFAULT '#6366f1', show_logo INTEGER DEFAULT 1, show_nit INTEGER DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);
   `);
 
   // Seed / upsert default billing plans

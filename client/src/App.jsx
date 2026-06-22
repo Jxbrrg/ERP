@@ -4,6 +4,7 @@ import useAuthStore from './store/authStore';
 import Landing from './pages/Landing';
 import Pricing from './pages/Pricing';
 import Login from './pages/Login';
+import ResetPassword from './pages/ResetPassword';
 import Register from './pages/Register';
 import CeoDashboard from './pages/CeoDashboard';
 import Dashboard from './pages/Dashboard';
@@ -15,6 +16,7 @@ import Clientes from './pages/Clientes';
 import Projects from './pages/Projects';
 import Admin from './pages/Admin';
 import Settings from './pages/Settings';
+import InvoicePrint from './pages/InvoicePrint';
 import Layout from './components/Layout';
 
 function ProtectedRoute({ children }) {
@@ -33,21 +35,20 @@ function Loader() {
 }
 
 export default function App() {
-  const { checkAuth, darkMode, user } = useAuthStore();
+  const { checkAuth, user } = useAuthStore();
 
   useEffect(() => {
     checkAuth();
-    if (localStorage.getItem('synex-dark') === 'true') {
-      document.documentElement.classList.add('dark');
-    }
+    document.documentElement.classList.add('dark');
   }, []);
 
   return (
-    <div className={darkMode ? 'dark' : ''}>
+    <div className="dark">
       <Routes>
         <Route path="/" element={user ? <Navigate to="/dashboard" /> : <Landing />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <Login />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/register" element={user ? <Navigate to="/dashboard" /> : <Register />} />
         <Route path="/*" element={
           <ProtectedRoute>
@@ -67,6 +68,7 @@ export default function App() {
             </Layout>
           </ProtectedRoute>
         } />
+        <Route path="/invoice/:id" element={<ProtectedRoute><InvoicePrint /></ProtectedRoute>} />
       </Routes>
     </div>
   );

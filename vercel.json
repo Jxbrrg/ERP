@@ -13,6 +13,9 @@
     { "source": "/auth/(.*)", "destination": "/api/index.js" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
+  "redirects": [
+    { "source": "/(.*)", "destination": "https://synexsoftware.xyz/$1", "permanent": true, "has": [{ "type": "host", "value": "erp-teal-phi.vercel.app" }] }
+  ],
   "headers": [
     {
       "source": "/api/(.*)",

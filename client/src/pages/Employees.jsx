@@ -58,10 +58,10 @@ export default function Employees() {
     )},
     { key: 'actions', label: 'Acciones', render: r => (
       <div className="flex gap-1" onClick={e => e.stopPropagation()}>
-        <button onClick={() => { setEditEmp(r); setShowModal(true); }} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-indigo-500 dark:hover:bg-slate-800">
+        <button onClick={() => { setEditEmp(r); setShowModal(true); }} className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-indigo-500 dark:hover:bg-slate-800">
           <Edit2 className="h-3.5 w-3.5" />
         </button>
-        <button onClick={() => handleDelete(r.id)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-rose-500 dark:hover:bg-slate-800">
+        <button onClick={() => handleDelete(r.id)} className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-rose-500 dark:hover:bg-slate-800">
           <Trash2 className="h-3.5 w-3.5" />
         </button>
       </div>
@@ -73,7 +73,7 @@ export default function Employees() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Empleados</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">{employees.length} registros</p>
+          <p className="text-sm text-slate-600 dark:text-slate-400">{employees.length} registros</p>
         </div>
         <button onClick={() => { setEditEmp(null); setShowModal(true); }}
           className="gradient-primary flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-xl active:scale-95">
@@ -153,7 +153,7 @@ function EmployeeModal({ onClose, onSave, employee }) {
 function Input({ label, type = 'text', value, onChange, className = '' }) {
   return (
     <div className={className}>
-      <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">{label}</label>
+      <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">{label}</label>
       <input type={type} value={value} onChange={e => onChange(e.target.value)}
         className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white" />
     </div>

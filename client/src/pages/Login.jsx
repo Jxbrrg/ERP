@@ -16,6 +16,11 @@ export default function Login() {
   const [showSetPassword, setShowSetPassword] = useState(false);
   const [spPassword, setSpPassword] = useState('');
   const [spMsg, setSpMsg] = useState('');
+  const [showForgot, setShowForgot] = useState(false);
+  const [fpEmail, setFpEmail] = useState('');
+  const [fpSent, setFpSent] = useState(false);
+  const [fpLoading, setFpLoading] = useState(false);
+  const [fpError, setFpError] = useState('');
 
   const handleSetPassword = async (e) => {
     e.preventDefault();
@@ -55,6 +60,20 @@ export default function Login() {
       setError(err.message);
     }
     setLoading(false);
+  };
+
+  const handleForgot = async (e) => {
+    e.preventDefault();
+    setFpLoading(true); setFpError('');
+    try {
+      const r = await fetch(__API_URL__ + '/auth/forgot-password', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: fpEmail })
+      });
+      if (!r.ok) { const d = await r.json(); setFpError(d.error); return; }
+      setFpSent(true);
+    } catch { setFpError('Error de conexión'); }
+    setFpLoading(false);
   };
 
   return (
@@ -174,6 +193,10 @@ export default function Login() {
                 className="text-xs text-slate-400 hover:text-indigo-400 transition-colors">
                 ¿No puedes iniciar sesión? Establecer contraseña
               </button>
+              <button onClick={() => setShowForgot(true)}
+                className="ml-3 text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
+                Olvidé mi contraseña
+              </button>
             </div>
 
             {showSetPassword && (
@@ -198,6 +221,37 @@ export default function Login() {
               </p>
               <p className="mt-4 text-center text-[10px] text-slate-500/60">&copy; {new Date().getFullYear()} Synex by Jhossuar</p>
             </div>
+
+            {showForgot && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+                onClick={() => setShowForgot(false)}>
+                <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }}
+                  className="w-full max-w-sm rounded-2xl border border-white/10 bg-slate-900 p-6 shadow-2xl"
+                  onClick={e => e.stopPropagation()}>
+                  <h3 className="text-lg font-bold text-white">Restablecer contraseña</h3>
+                  {fpSent ? (
+                    <div className="mt-4 text-center">
+                      <p className="text-sm text-emerald-400">Si existe una cuenta con ese correo, recibirás instrucciones para restablecer tu contraseña.</p>
+                      <button onClick={() => setShowForgot(false)} className="mt-4 rounded-xl bg-indigo-500 px-6 py-2 text-sm font-semibold text-white">Cerrar</button>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleForgot} className="mt-4 space-y-4">
+                      <p className="text-xs text-slate-400">Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.</p>
+                      <input type="email" value={fpEmail} onChange={e => setFpEmail(e.target.value)} placeholder="tu@correo.com" required
+                        className="w-full rounded-xl border border-white/10 bg-slate-800 px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none focus:border-indigo-500/50" />
+                      {fpError && <p className="text-xs text-rose-400">{fpError}</p>}
+                      <div className="flex gap-3">
+                        <button type="button" onClick={() => setShowForgot(false)} className="flex-1 rounded-xl border border-slate-600 py-2 text-sm text-slate-300 hover:text-white transition-colors">Cancelar</button>
+                        <button type="submit" disabled={fpLoading} className="flex-1 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 py-2 text-sm font-semibold text-white shadow-lg hover:shadow-xl disabled:opacity-50">
+                          {fpLoading ? 'Enviando...' : 'Enviar enlace'}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                </motion.div>
+              </motion.div>
+            )}
         </motion.div>
       </div>
     </div>

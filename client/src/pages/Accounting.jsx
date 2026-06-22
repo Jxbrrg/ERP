@@ -52,7 +52,7 @@ export default function Accounting() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Contabilidad</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">{txns.length} transacciones</p>
+          <p className="text-sm text-slate-600 dark:text-slate-400">{txns.length} transacciones</p>
         </div>
         <button onClick={() => setShowModal(true)}
           className="gradient-primary flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-xl active:scale-95">
@@ -69,7 +69,7 @@ export default function Accounting() {
               <TrendingUp className="h-5 w-5 text-emerald-500" />
             </div>
             <div>
-              <p className="text-xs text-slate-400">Ingresos</p>
+              <p className="text-xs text-slate-500">Ingresos</p>
               <p className="text-xl font-bold text-emerald-500">${(summary?.income || 0).toLocaleString('es-CO')}</p>
             </div>
           </div>
@@ -82,7 +82,7 @@ export default function Accounting() {
               <TrendingDown className="h-5 w-5 text-rose-500" />
             </div>
             <div>
-              <p className="text-xs text-slate-400">Gastos</p>
+              <p className="text-xs text-slate-500">Gastos</p>
               <p className="text-xl font-bold text-rose-500">${(summary?.expense || 0).toLocaleString('es-CO')}</p>
             </div>
           </div>
@@ -95,7 +95,7 @@ export default function Accounting() {
               <Wallet className={`h-5 w-5 ${(summary?.balance || 0) >= 0 ? 'text-blue-500' : 'text-rose-500'}`} />
             </div>
             <div>
-              <p className="text-xs text-slate-400">Balance Neto</p>
+              <p className="text-xs text-slate-500">Balance Neto</p>
               <p className={`text-xl font-bold ${(summary?.balance || 0) >= 0 ? 'text-blue-500' : 'text-rose-500'}`}>
                 ${(summary?.balance || 0).toLocaleString('es-CO')}
               </p>
@@ -160,7 +160,7 @@ function TxModal({ onClose, onSave }) {
         <h3 className="text-lg font-bold text-slate-800 dark:text-white">Nueva Transacción</h3>
         <div className="mt-4 grid grid-cols-2 gap-4">
           <div>
-            <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Tipo</label>
+            <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Tipo</label>
             <select value={form.type} onChange={e => setForm({...form, type: e.target.value})}
               className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-white">
               <option value="income">Ingreso</option>
@@ -168,7 +168,7 @@ function TxModal({ onClose, onSave }) {
             </select>
           </div>
           <div>
-            <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Categoría</label>
+            <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Categoría</label>
             <select value={form.category} onChange={e => setForm({...form, category: e.target.value})}
               className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-white">
               <option value="">Seleccionar...</option>
@@ -176,17 +176,17 @@ function TxModal({ onClose, onSave }) {
             </select>
           </div>
           <div className="col-span-2">
-            <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Descripción</label>
+            <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Descripción</label>
             <input type="text" value={form.description} onChange={e => setForm({...form, description: e.target.value})}
               className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-400 dark:border-slate-600 dark:bg-slate-800 dark:text-white" />
           </div>
           <div>
-            <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Monto</label>
+            <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Monto</label>
             <input type="number" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})}
               className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-400 dark:border-slate-600 dark:bg-slate-800 dark:text-white" />
           </div>
           <div>
-            <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Método Pago</label>
+            <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Método Pago</label>
             <select value={form.payment_method} onChange={e => setForm({...form, payment_method: e.target.value})}
               className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-white">
               <option value="cash">Efectivo</option>
@@ -195,7 +195,7 @@ function TxModal({ onClose, onSave }) {
             </select>
           </div>
           <div className="col-span-2">
-            <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Fecha</label>
+            <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Fecha</label>
             <input type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})}
               className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-400 dark:border-slate-600 dark:bg-slate-800 dark:text-white" />
           </div>

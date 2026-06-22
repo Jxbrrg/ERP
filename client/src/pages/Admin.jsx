@@ -182,6 +182,7 @@ export default function Admin() {
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Slug</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Plan</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Usuarios</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Vence</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Creada</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Acción</th>
               </tr>
@@ -206,7 +207,18 @@ export default function Admin() {
                         <option value="cancelled">Cancelado</option>
                       </select>
                     </td>
-                  <td className="px-4 py-3 text-slate-500">{c.user_count || 0}</td>
+                  <td className="px-4 py-3">
+                    {(() => {
+                      if (!c.plan_expires_at) return <span className="text-xs text-slate-400">—</span>;
+                      const days = Math.ceil((new Date(c.plan_expires_at) - new Date()) / 86400000);
+                      const cls = days <= 0 ? 'bg-rose-100 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400'
+                        : days <= 5 ? 'bg-amber-100 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400'
+                        : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400';
+                      return <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${cls}`}>
+                        {days <= 0 ? 'Vencido' : `${days} día${days !== 1 ? 's' : ''}`}
+                      </span>;
+                    })()}
+                  </td>
                   <td className="px-4 py-3 text-slate-500">{new Date(c.created_at).toLocaleDateString()}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">

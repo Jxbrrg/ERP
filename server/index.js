@@ -45,6 +45,7 @@ app.use('/api', async (req, res, next) => {
   if (req.path.startsWith('/billing/')) return next();
   if (req.path.startsWith('/company/branding')) return next();
   if (req.path.startsWith('/company/api-key')) return next();
+  if (req.path.startsWith('/api-keys')) return next();
 
   try {
     const company = await db.get('SELECT plan, plan_expires_at, id FROM companies WHERE id = ?', req.companyId);
@@ -76,6 +77,41 @@ app.post('/auth/logout', (req, res) => {
 });
 
 // Debug: check DB state and force backfill
+app.post('/auth/forgot-password', ah(async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'Email requerido' });
+  const user = await db.get('SELECT id, email, name FROM users WHERE email = ?', email);
+  const { sendEmail } = require('./services/email');
+  if (!user) {
+    await sendEmail({ to: email, subject: 'Restablecer contraseña - Synex', html: `<p>Si existe una cuenta con este correo, recibirás instrucciones.</p>` });
+    return res.json({ success: true });
+  }
+  const crypto = require('crypto');
+  const token = crypto.randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  await db.run('INSERT INTO password_reset_tokens (id, email, token, expires_at) VALUES (?,?,?,?)', require('uuid').v4(), email, token, expiresAt);
+  const resetLink = `${process.env.APP_URL || 'https://erp-teal-phi.vercel.app'}/reset-password?token=${token}`;
+  await sendEmail({
+    to: email,
+    subject: 'Restablece tu contraseña - Synex',
+    html: `<h2>Hola ${user.name || 'usuario'}</h2><p>Recibimos una solicitud para restablecer tu contraseña.</p><p>Haz clic en el enlace para crear una nueva contraseña (válido por 1 hora):</p><a href="${resetLink}" style="display:inline-block;padding:12px 24px;background:#6366f1;color:#fff;border-radius:8px;text-decoration:none;margin:16px 0">Restablecer contraseña</a><p>Si no solicitaste esto, ignora este mensaje.</p>`
+  });
+  res.json({ success: true });
+}));
+
+app.post('/auth/reset-password', ah(async (req, res) => {
+  const { token, password } = req.body;
+  if (!token || !password) return res.status(400).json({ error: 'Token y contraseña requeridos' });
+  const record = await db.get('SELECT * FROM password_reset_tokens WHERE token = ? AND used = 0 AND expires_at > datetime(\'now\')', token);
+  if (!record) return res.status(400).json({ error: 'Token inválido o expirado' });
+  const { createHash } = require('crypto');
+  const salt = require('crypto').randomBytes(16).toString('hex');
+  const hash = require('crypto').pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+  await db.run('UPDATE users SET password_hash = ? WHERE email = ?', salt + ':' + hash, record.email);
+  await db.run('UPDATE password_reset_tokens SET used = 1 WHERE id = ?', record.id);
+  res.json({ success: true });
+}));
+
 app.get('/auth/debug', ah(async (req, res) => {
   const crypto = require('crypto');
   const demoHash = crypto.pbkdf2Sync('admin123', 'demo', 1000, 64, 'sha512').toString('hex');
@@ -127,7 +163,7 @@ app.post('/auth/set-password', async (req, res) => {
 
 app.post('/auth/register', async (req, res) => {
   try {
-    const { companyName, name, email, password, logoBase64, primary_color, secondary_color } = req.body;
+    const { companyName, name, email, password, phone, nit, logoBase64, primary_color, secondary_color } = req.body;
     if (!companyName || !name || !email || !password) {
       return res.status(400).json({ error: 'Todos los campos son obligatorios' });
     }
@@ -140,8 +176,8 @@ app.post('/auth/register', async (req, res) => {
     const companyId = require('uuid').v4();
     const slug = companyName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + Date.now().toString(36);
     const expires = new Date(); expires.setDate(expires.getDate() + 14);
-    await db.run('INSERT INTO companies (id, name, slug, plan, owner_id, plan_expires_at, logo_url, primary_color, secondary_color) VALUES (?,?,?,?,?,?,?,?,?)',
-      companyId, companyName, slug, 'trial', null, expires.toISOString(), logoBase64 || null, primary_color || '#6366f1', secondary_color || '#06b6d4');
+    await db.run('INSERT INTO companies (id, name, slug, plan, owner_id, plan_expires_at, logo_url, primary_color, secondary_color, phone, nit) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+      companyId, companyName, slug, 'trial', null, expires.toISOString(), logoBase64 || null, primary_color || '#6366f1', secondary_color || '#06b6d4', phone || null, nit || null);
 
     const userId = require('uuid').v4();
     const crypto = require('crypto');
@@ -318,6 +354,9 @@ app.use('/api/accounting', require('./routes/accounting'));
 app.use('/api/crm', require('./routes/crm'));
 app.use('/api/projects', require('./routes/projects'));
 app.use('/api/billing', require('./routes/billing'));
+app.use('/api/company', require('./routes/backup'));
+app.use('/api/company', require('./routes/invoice-templates'));
+app.use('/api', require('./routes/api'));
 
 app.post('/api/leads', ah(async (req, res) => {
   const { name, company, phone, email, plan_name } = req.body;
@@ -345,6 +384,12 @@ app.post('/api/contact', ah(async (req, res) => {
   if (!name || !email || !message) return res.status(400).json({ error: 'Nombre, email y mensaje requeridos' });
   const id = require('uuid').v4();
   await db.run('INSERT INTO contacts (id, name, email, phone, message) VALUES (?,?,?,?,?)', id, name, email, phone || '', message);
+  const { sendEmail } = require('./services/email');
+  await sendEmail({
+    to: process.env.NOTIFY_EMAIL || 'Synex@synex.com',
+    subject: `Nuevo contacto: ${name}`,
+    html: `<h2>Nuevo mensaje de contacto</h2><p><strong>Nombre:</strong> ${name}</p><p><strong>Email:</strong> ${email}</p><p><strong>Teléfono:</strong> ${phone || '—'}</p><p><strong>Mensaje:</strong></p><p>${message}</p>`
+  });
   res.status(201).json({ success: true });
 }));
 

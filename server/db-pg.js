@@ -200,6 +200,30 @@ async function doInit() {
 
     // Migration: add role column to employees
     await pool.query("ALTER TABLE employees ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'editor'").catch(() => {});
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS password_reset_tokens (
+        id TEXT PRIMARY KEY, email TEXT NOT NULL, token TEXT NOT NULL,
+        expires_at TIMESTAMPTZ NOT NULL, used INTEGER DEFAULT 0,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS api_keys (
+        id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id),
+        name TEXT NOT NULL, key TEXT NOT NULL UNIQUE, active INTEGER DEFAULT 1,
+        last_used_at TIMESTAMPTZ, created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS invoice_templates (
+        id TEXT PRIMARY KEY, company_id TEXT UNIQUE REFERENCES companies(id),
+        header_text TEXT DEFAULT '', footer_text TEXT DEFAULT '',
+        terms_text TEXT DEFAULT '', font_family TEXT DEFAULT 'Inter',
+        font_size INTEGER DEFAULT 12, primary_color TEXT DEFAULT '#6366f1',
+        show_logo INTEGER DEFAULT 1, show_nit INTEGER DEFAULT 1,
+        created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
 
     // Seed / upsert default billing plans
     const epaycoSvc = require('./services/epayco');

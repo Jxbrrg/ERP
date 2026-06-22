@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { apiFetch } from '../api/fetch';
 import { motion } from 'framer-motion';
-import { Plus, Eye } from 'lucide-react';
+import { Plus, Eye, Printer } from 'lucide-react';
 import DataTable from '../components/DataTable';
+import { sendLocalNotification } from '../utils/notifications';
 
 export default function Sales() {
   const [orders, setOrders] = useState([]);
@@ -27,6 +28,7 @@ export default function Sales() {
     await apiFetch(__API_URL__ + '/api/sales', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
     await loadOrders();
     setShowModal(false);
+    sendLocalNotification('Nueva orden creada', { body: `Orden registrada exitosamente`, url: '/sales' });
   };
 
   const updateStatus = async (id, status) => {
@@ -50,12 +52,12 @@ export default function Sales() {
     { key: 'actions', label: '', render: r => (
       <div className="flex gap-1" onClick={e => e.stopPropagation()}>
         <button onClick={() => setShowDetail(r.id)}
-          className="rounded-lg p-1.5 text-slate-400 hover:text-indigo-500">
+          className="rounded-lg p-1.5 text-slate-500 hover:text-indigo-500">
           <Eye className="h-3.5 w-3.5" />
         </button>
         {r.status === 'pending' && (
           <button onClick={() => updateStatus(r.id, 'confirmed')}
-            className="rounded-lg p-1.5 text-slate-400 hover:text-emerald-500">
+            className="rounded-lg p-1.5 text-slate-500 hover:text-emerald-500">
             Confirmar
           </button>
         )}
@@ -68,7 +70,7 @@ export default function Sales() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Ventas</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">{orders.length} órdenes</p>
+          <p className="text-sm text-slate-600 dark:text-slate-400">{orders.length} órdenes</p>
         </div>
         <button onClick={() => setShowModal(true)}
           className="gradient-primary flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-xl active:scale-95">
@@ -123,7 +125,7 @@ function OrderModal({ onClose, onSave, customers, employees, products }) {
         
         <div className="mt-4 grid grid-cols-2 gap-4">
           <div>
-            <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Cliente</label>
+            <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Cliente</label>
             <select value={form.customer_id} onChange={e => setForm({...form, customer_id: e.target.value})}
               className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-white">
               <option value="">Seleccionar...</option>
@@ -131,7 +133,7 @@ function OrderModal({ onClose, onSave, customers, employees, products }) {
             </select>
           </div>
           <div>
-            <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Vendedor</label>
+            <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Vendedor</label>
             <select value={form.employee_id} onChange={e => setForm({...form, employee_id: e.target.value})}
               className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-white">
               <option value="">Seleccionar...</option>
@@ -139,7 +141,7 @@ function OrderModal({ onClose, onSave, customers, employees, products }) {
             </select>
           </div>
           <div>
-            <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Método Pago</label>
+            <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Método Pago</label>
             <select value={form.payment_method} onChange={e => setForm({...form, payment_method: e.target.value})}
               className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-white">
               {Object.entries(paymentLabels).map(([value, label]) => (
@@ -148,7 +150,7 @@ function OrderModal({ onClose, onSave, customers, employees, products }) {
             </select>
           </div>
           <div className="col-span-2">
-            <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Descripción / Notas</label>
+            <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Descripción / Notas</label>
             <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})}
               className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-400 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
               rows={2} placeholder="Notas adicionales..." />
@@ -229,6 +231,10 @@ function OrderDetail({ orderId, onClose }) {
                 </div>
               ))}
             </div>
+            <button onClick={() => window.open(`/invoice/${orderId}`, '_blank')}
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-600 transition-colors">
+              <Printer className="h-4 w-4" /> Imprimir Factura
+            </button>
           </>
         ) : (
           <div className="flex justify-center py-8"><div className="h-6 w-6 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent" /></div>

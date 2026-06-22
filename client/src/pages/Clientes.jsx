@@ -49,11 +49,11 @@ export default function CRM() {
     { key: 'credit_limit', label: 'Límite Crédito', render: r => `$${Number(r.credit_limit).toLocaleString('es-CO')}` },
     { key: 'actions', label: '', render: r => (
       <div className="flex gap-1" onClick={e => e.stopPropagation()}>
-        <button onClick={() => { setEditCust(r); setShowModal(true); }} className="rounded-lg p-1.5 text-slate-400 hover:text-indigo-500"><Edit2 className="h-3.5 w-3.5" /></button>
+        <button onClick={() => { setEditCust(r); setShowModal(true); }} className="rounded-lg p-1.5 text-slate-500 hover:text-indigo-500"><Edit2 className="h-3.5 w-3.5" /></button>
         {isSuperAdmin && (
-          <button onClick={() => handleDelete(r.id)} className="rounded-lg p-1.5 text-slate-400 hover:text-rose-500"><Trash2 className="h-3.5 w-3.5" /></button>
+          <button onClick={() => handleDelete(r.id)} className="rounded-lg p-1.5 text-slate-500 hover:text-rose-500"><Trash2 className="h-3.5 w-3.5" /></button>
         )}
-        <button onClick={() => setSelectedCust(r)} className="rounded-lg p-1.5 text-slate-400 hover:text-cyan-500"><MessageSquare className="h-3.5 w-3.5" /></button>
+        <button onClick={() => setSelectedCust(r)} className="rounded-lg p-1.5 text-slate-500 hover:text-cyan-500"><MessageSquare className="h-3.5 w-3.5" /></button>
       </div>
     )}
   ];
@@ -63,7 +63,7 @@ export default function CRM() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-800 dark:text-white">CRM - Clientes</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">{customers.length} clientes registrados</p>
+          <p className="text-sm text-slate-600 dark:text-slate-400">{customers.length} clientes registrados</p>
         </div>
         <button onClick={() => { setEditCust(null); setShowModal(true); }}
           className="gradient-primary flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-xl active:scale-95">
@@ -108,7 +108,7 @@ function CustomerModal({ onClose, onSave, customer }) {
           <Input label="Dirección" value={form.address} onChange={v => setForm({...form, address: v})} />
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Tipo</label>
+              <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Tipo</label>
               <select value={form.type} onChange={e => setForm({...form, type: e.target.value})}
                 className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-white">
                 <option value="regular">Regular</option>
@@ -152,7 +152,7 @@ function CustomerDetail({ customer, onClose }) {
               </div>
               <div>
                 <h3 className="text-xl font-bold text-slate-800 dark:text-white">{detail.name}</h3>
-                <div className="flex gap-4 mt-1 text-xs text-slate-400">
+                <div className="flex gap-4 mt-1 text-xs text-slate-500">
                   <span className="flex items-center gap-1"><Mail className="h-3 w-3" /> {detail.email}</span>
                   <span className="flex items-center gap-1"><Phone className="h-3 w-3" /> {detail.phone}</span>
                   <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {detail.address}</span>
@@ -166,7 +166,7 @@ function CustomerDetail({ customer, onClose }) {
                 <div key={int.id} className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-800/50">
                   <div>
                     <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{int.subject}</p>
-                    <p className="text-xs text-slate-400">{int.type} · {int.assigned_name || 'Sin asignar'}</p>
+                    <p className="text-xs text-slate-500">{int.type} · {int.assigned_name || 'Sin asignar'}</p>
                   </div>
                   <span className={`text-xs font-medium ${
                     int.status === 'completed' ? 'text-emerald-500' :
@@ -175,7 +175,7 @@ function CustomerDetail({ customer, onClose }) {
                 </div>
               ))}
               {(!detail.interactions || detail.interactions.length === 0) && (
-                <p className="text-sm text-slate-400">Sin interacciones registradas</p>
+                <p className="text-sm text-slate-500">Sin interacciones registradas</p>
               )}
             </div>
           </>
@@ -191,7 +191,7 @@ function CustomerDetail({ customer, onClose }) {
 function Input({ label, type = 'text', value, onChange }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">{label}</label>
+      <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">{label}</label>
       <input type={type} value={value} onChange={e => onChange(e.target.value)}
         className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white" />
     </div>

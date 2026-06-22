@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, Users, Package, ShoppingCart, 
   BarChart3, Target, FolderKanban, ChevronLeft, 
-  ChevronRight, Menu, X, Moon, Sun, Bell, LogOut,
+  ChevronRight, Menu, X, Bell, LogOut,
   Shield, Building2, Eye, EyeOff, Settings2
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -69,7 +69,7 @@ function SidebarView({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
               className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
                 active 
                   ? 'text-indigo-600 dark:text-indigo-400' 
-                  : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800/50'
+                  : 'text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800/50'
               }`}
               style={active ? { backgroundColor: brandColor + '15', color: brandColor } : {}}
             >
@@ -110,7 +110,7 @@ function SidebarView({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
         {sidebarContent}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-20 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-md hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-400"
+          className="absolute -right-3 top-20 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-md hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-400"
         >
           {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
         </button>
@@ -140,7 +140,7 @@ function SidebarView({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
 }
 
 export function Navbar({ setMobileOpen }) {
-  const { user, darkMode, toggleDark, logout, impersonating, stopImpersonating } = useAuthStore();
+  const { user, logout, impersonating, stopImpersonating } = useAuthStore();
   const brandColor = user?.company?.primary_color || '#6366f1';
   const [notifs, setNotifs] = useState([]);
   const [showNotifs, setShowNotifs] = useState(false);
@@ -193,26 +193,22 @@ export function Navbar({ setMobileOpen }) {
       <header className="glass sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200/50 px-4 dark:border-slate-700/50"
         style={{ top: impersonating ? '40px' : '0' }}>
         <div className="flex items-center gap-3">
-          <button onClick={() => setMobileOpen(true)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden dark:hover:bg-slate-800">
+          <button onClick={() => setMobileOpen(true)} className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden dark:hover:bg-slate-800">
             <Menu className="h-5 w-5" />
           </button>
           <div className="hidden sm:block">
             <h1 className="text-sm font-semibold text-slate-800 dark:text-white">
               {user?.name ? `Bienvenido, ${user.name.split(' ')[0]}` : 'Synex'}
             </h1>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500">
+            <p className="text-[11px] text-slate-500 dark:text-slate-500">
               {new Date().toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <button onClick={toggleDark} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">
-            {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </button>
-
           <div className="relative">
-            <button onClick={() => setShowNotifs(!showNotifs)} className="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">
+            <button onClick={() => setShowNotifs(!showNotifs)} className="relative rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800">
               <Bell className="h-4 w-4" />
               {notifs.filter(n => !n.read).length > 0 && (
                 <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full ring-2 ring-white dark:ring-slate-900" style={{ background: brandColor }} />
@@ -280,7 +276,7 @@ export default function Layout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-900">
+    <div className="flex h-screen overflow-hidden bg-[#eef2f6] dark:bg-slate-900">
       <SidebarView
         collapsed={collapsed}
         setCollapsed={setCollapsed}
