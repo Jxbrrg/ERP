@@ -4,11 +4,22 @@ const { v4: uuidv4 } = require('uuid');
 const router = express.Router();
 const ah = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
+// Listar solo insumos (ingredientes)
+router.get('/ingredients', ah(async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'No autenticado' });
+  const ingredients = await db.all(`
+    SELECT p.*, p.category as category_name FROM products p
+    WHERE p.company_id = ? AND p.is_ingredient = 1
+  `, req.companyId);
+  res.json(ingredients);
+}));
+
+// Listar solo productos terminados (waffles/granizados)
 router.get('/', ah(async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'No autenticado' });
   const products = await db.all(`
     SELECT p.*, p.category as category_name FROM products p
-    WHERE p.company_id = ? ORDER BY p.created_at DESC
+    WHERE p.company_id = ? AND (p.is_ingredient = 0 OR p.is_ingredient IS NULL)
   `, req.companyId);
   res.json(products);
 }));

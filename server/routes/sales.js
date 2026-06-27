@@ -36,16 +36,35 @@ router.post('/', ah(async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'No autenticado' });
   const { customer_id, employee_id, items, payment_method, notes } = req.body;
   const total = items.reduce((sum, it) => sum + (it.quantity * it.unit_price), 0);
+  
+  // Costos fijos definidos por el dueño
+  const CUP_COST = 2500;
+  const SUPERVISOR_COST = 600;
+  const LABOR_COST = 1000;
+  const TRANSPORT_COST = 400;
+  
+  const totalCost = (CUP_COST + SUPERVISOR_COST + LABOR_COST + TRANSPORT_COST) * items.length;
+  const danielProfit = total - totalCost; // Ajuste simplificado inicial
+
   const id = uuidv4();
   const result = await db.get('SELECT COUNT(*) as c FROM orders WHERE company_id = ?', req.companyId);
   const code = `ORD-${String((result.c || 0) + 1).padStart(4, '0')}`;
 
   await db.transaction(async (tx) => {
-    await tx.run(`INSERT INTO orders (id,code,customer_id,employee_id,total,status,payment_method,notes,company_id,created_by)
-      VALUES (?,?,?,?,?,?,?,?,?,?)`, id, code, customer_id, employee_id, total, 'pending', payment_method, notes, req.companyId, req.user.id);
+    await tx.run(`INSERT INTO orders (id,code,customer_id,employee_id,total,status,payment_method,notes,company_id,created_by,
+      cup_cost,supervisor_cost,labor_cost,transport_cost,daniel_profit)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, id, code, customer_id, employee_id, total, 'pending', payment_method, notes, req.companyId, req.user.id,
+      CUP_COST * items.length, SUPERVISOR_COST * items.length, LABOR_COST * items.length, TRANSPORT_COST * items.length, danielProfit);
+      
     for (const it of items) {
       await tx.run(`INSERT INTO order_items (id,order_id,product_id,quantity,unit_price,subtotal)
         VALUES (?,?,?,?,?,?)`, uuidv4(), id, it.product_id, it.quantity, it.unit_price, it.quantity * it.unit_price);
+        
+      // Descontar inventario de ingredientes (lógica básica)
+      const ingredients = await tx.all('SELECT ingredient_id, grams_quantity FROM product_ingredients WHERE product_id = ?', it.product_id);
+      for (const ing of ingredients) {
+        await tx.run('UPDATE products SET stock = stock - (?) WHERE id = ?', ing.grams_quantity * it.quantity, ing.ingredient_id);
+      }
     }
   });
 

@@ -9,8 +9,7 @@ router.get('/', ah(async (req, res) => {
   const recipes = await db.all(`
     SELECT p.*, p.category as category_name,
       (SELECT COUNT(*) FROM product_ingredients pi WHERE pi.product_id = p.id) as ingredient_count
-    FROM products p WHERE p.company_id = ? AND (p.unit = 'unidad' OR p.unit IS NULL)
-    AND p.name NOT IN ('LECHE CONDENSADA','SERVILLETA','CUCHARA','VASOS DARNEL','PAPEL PELE','BOLSA','STICKER')
+    FROM products p WHERE p.company_id = ? AND (p.is_ingredient = 0 OR p.is_ingredient IS NULL)
     ORDER BY p.created_at DESC
   `, req.companyId);
   const result = [];
