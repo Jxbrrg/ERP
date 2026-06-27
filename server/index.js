@@ -15,6 +15,9 @@ const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 app.use(cors({ origin: CLIENT_URL, credentials: true }));
 app.use(express.json());
 
+// Debug health check
+app.get('/api/health', (req, res) => res.json({ ok: true, time: Date.now() }));
+
 async function authMiddleware(req, res, next) {
   const auth = req.headers.authorization;
   if (auth && auth.startsWith('Bearer ')) {
