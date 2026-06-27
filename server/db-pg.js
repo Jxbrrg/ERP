@@ -4,7 +4,7 @@ const crypto = require('crypto');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || process.env.POSTGRES_URL,
-  ssl: process.env.VERCEL ? { rejectUnauthorized: false } : false,
+  ssl: { rejectUnauthorized: false },
 });
 
 let initialized = false;

@@ -23,7 +23,8 @@ async function authMiddleware(req, res, next) {
   if (auth && auth.startsWith('Bearer ')) {
     try {
       const decoded = jwt.verify(auth.slice(7), JWT_SECRET);
-      req.user = await db.get('SELECT * FROM users WHERE email = ?', decoded.email);
+      const user = await db.get('SELECT * FROM users WHERE email = ?', decoded.email);
+      if (user) req.user = user;
     } catch (_) {}
   }
   next();
@@ -35,10 +36,13 @@ const ah = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch
 
 // Attach company scope to all /api/* requests
 app.use('/api', (req, res, next) => {
-  if (req.user) {
+  if (req.user && req.user.company_id) {
     req.companyId = req.user.company_id;
     req.isSuperAdmin = req.user.role === 'superadmin';
     req.isEmployee = req.user.role === 'employee';
+  } else if (req.path !== '/login' && req.path !== '/register') {
+    // Only block if not auth routes
+    return res.status(401).json({ error: 'No autenticado o sin empresa' });
   }
   next();
 });
