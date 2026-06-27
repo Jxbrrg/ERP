@@ -26,33 +26,34 @@ const seedData = (companyId) => {
   const dateStr = (d) => d.toISOString().split('T')[0];
   const daysAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return dateStr(d); };
 
-  const departamentos = ['TI', 'Ventas', 'Marketing', 'RRHH', 'Finanzas', 'Operaciones', 'Logística'];
-  const cargos = ['Analista Senior', 'Coordinador', 'Director', 'Asistente', 'Especialista', 'Jefe de Área', 'Supervisor'];
+  const departamentos = ['Producción', 'Atención al Cliente', 'Administración', 'Cocina', 'Delivery'];
+  const cargos = ['Maestro Granizadero', 'Cajero', 'Mesero', 'Repartidor', 'Admin', 'Ayudante de Cocina'];
   const nombres = ['Carlos Mendoza','María García','Juan Pérez','Ana López','Pedro Ramírez','Laura Torres',
     'Diego Castillo','Sofía Herrera','Andrés Vega','Valentina Ríos','Fernando Díaz','Camila Ortiz',
     'Roberto Navarro','Isabel Flores','Luis Morales','Gabriela Ruiz','Javier Santos','Patricia Vega',
     'Miguel Ángel','Daniela Cruz','Alejandro Rojas','Fernanda Medina','Sergio Aguilar','Mariana Campos'];
-  const cats = ['Electrónicos','Oficina','Ropa','Alimentos','Herramientas','Muebles','Juguetes','Deportes'];
+  const cats = ['Sabores Fruta', 'Sabores Especiales', 'Toppings', 'Tamaños', 'Bebidas', 'Snacks'];
   const prods = [
-    ['Laptop Pro X1','Laptop de alto rendimiento',2500,1800,50],
-    ['Monitor 27" 4K','Monitor profesional',800,550,30],
-    ['Teclado Mecánico RGB','Teclado gaming',150,90,100],
-    ['Mouse Inalámbrico','Mouse ergonómico',80,45,120],
-    ['Silla Ejecutiva','Silla ergonómica premium',1200,800,25],
-    ['Escritorio Eléctrico','Escritorio ajustable',900,600,15],
-    ['Café Premium 1kg','Café colombiano',35,20,200],
-    ['Agua Mineral 12pk','Agua embotellada',18,10,300],
-    ['Camisa Corporate','Camisa manga larga',55,30,80],
-    ['Zapatos Formal','Zapatos cuero',120,70,40],
-    ['Audífonos ANC','Audífonos cancelación ruido',300,180,45],
-    ['Tablet Pro','Tablet profesional',900,600,35],
-    ['Cargador Universal','Cargador multipuerto',45,25,150],
-    ['Hub USB-C','Hub 7 puertos',65,35,90],
-    ['Webcam 4K','Cámara profesional',200,120,60],
-    ['Router WiFi 6','Router alta velocidad',180,110,40]
+    ['Granizado de Fresa', 'Refrescante granizado sabor fresa natural', 8000, 2500, 200],
+    ['Granizado de Limón', 'Granizado de limón natural', 7000, 2000, 200],
+    ['Granizado de Mora', 'Granizado de mora con trozos de fruta', 9000, 3000, 150],
+    ['Granizado de Lulo', 'Granizado de lulo, sabor tradicional', 8000, 2500, 150],
+    ['Granizado de Mango', 'Granizado de mango con tajín', 8500, 2800, 180],
+    ['Granizado de Maracuyá', 'Granizado maracuyá dulce y ácido', 9000, 3000, 120],
+    ['Granizado de Uva', 'Granizado sabor uva morada', 7000, 2000, 200],
+    ['Granizado de Coco', 'Granizado de coco con leche condensada', 10000, 3500, 100],
+    ['Granizado Tres Leches', 'Granizado sabor tres leches canela', 11000, 4000, 80],
+    ['Granizado de Café', 'Granizado de café con crema', 12000, 4500, 100],
+    ['Topping Crema Batida', 'Crema batida para decorar', 2000, 500, 300],
+    ['Salsa de Caramelo', 'Topping de caramelo', 1500, 400, 300],
+    ['Salsa de Chocolate', 'Topping de chocolate', 1500, 400, 300],
+    ['Granizado XL', 'Granizado tamaño extra grande', 14000, 5000, 80],
+    ['Granizado Mediano', 'Granizado tamaño mediano', 6000, 1800, 250],
+    ['Leche Condensada Extra', 'Porción extra de leche condensada', 2000, 600, 200]
   ];
-  const clientNames = ['TechSolutions SA','Global Corp','Distribuidora XYZ','Innovatech','Servicios Plus',
-    'Comercial ABC','Industrias del Norte','Grupo Empresarial Sigma','Corporación Andina','MegaRed'];
+  const clientNames = ['Doña Rosa Tienda','Frutas La 14','Panadería El Buen Pan','Cafetería La Esquina',
+    'Tienda Don Pepe','Restaurante La Abuela','Papelería El Centro','Carnicería El Mayorista',
+    'MiniMarket Express','Verdulería La Fresca'];
   const ciudades = ['Bogotá','Medellín','Cali','Barranquilla','Cartagena','Pereira','Bucaramanga'];
 
   const employeeIds = [];
@@ -60,7 +61,7 @@ const seedData = (companyId) => {
   nombres.forEach((n, i) => {
     const id = uuidv4();
     employeeIds.push(id);
-    insertEmp.run(id, companyId, `EMP-${String(i + 1).padStart(3, '0')}`, n, `${n.toLowerCase().replace(' ','.')}@synex.com`,
+    insertEmp.run(id, companyId, `EMP-${String(i + 1).padStart(3, '0')}`, n, `${n.toLowerCase().replace(' ','.')}@synexsoftware.xyz`,
       `300${rand(1000000, 9999999)}`, pick(cargos), pick(departamentos),
       rand(2000000, 15000000), daysAgo(rand(30, 730)), pick(['active','active','active','active','active','inactive','vacation']), createdBy);
   });
@@ -122,7 +123,7 @@ const seedData = (companyId) => {
   }
 
   const insertTx = db.prepare('INSERT OR IGNORE INTO transactions (id,company_id,code,type,category,description,amount,payment_method,reference,date,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
-  const txCats = ['Ventas','Servicios','Nómina','Proveedores','Servicios Públicos','Arriendo','Equipos','Marketing','Transporte','Seguros','Impuestos','Consultoría'];
+  const txCats = ['Ventas Granizados','Nómina','Proveedores Fruta','Servicios','Arriendo','Empaque','Transporte','Marketing','Hielo','Mantenimiento'];
   for (let i = 0; i < 80; i++) {
     const isIncome = Math.random() > 0.4;
     const cat = pick(txCats);
@@ -133,7 +134,7 @@ const seedData = (companyId) => {
   const subjects = ['Seguimiento cotización','Llamada de bienvenida','Revisión contrato','Propuesta comercial','Soporte técnico','Actualización de datos','Oferta especial','Renovación servicio','Queja','Solicitud información'];
   for (let i = 0; i < 40; i++) insertInt.run(uuidv4(), companyId, pick(custIds), pick(['call','email','meeting','note','task']), pick(subjects), 'Interacción registrada', pick(['completed','completed','completed','pending','scheduled']), pick(employeeIds), daysAgo(rand(-5, 30)), createdBy);
 
-  const projectNames = ['Implementación ERP','Migración Cloud','App Móvil Corporativa','Rediseño Web','Auditoría Seguridad','Campaña Marketing Digital','Optimización Procesos','Data Warehouse','E-commerce Platform','CRM Personalizado'];
+  const projectNames = ['Nuevo Local Centro','Festival de Granizados','Expansión Menú Salados','App de Pedidos','Rediseño Local','Campaña Redes Sociales','Curso de Granizados','Máquina de Hielo Nueva','Alianza con Frutas Frescas','Evento Degustación'];
   const projIds = [];
   const insertProj = db.prepare('INSERT OR IGNORE INTO projects (id,company_id,code,name,description,customer_id,start_date,end_date,budget,status,priority,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)');
   projectNames.forEach((n, i) => {
@@ -170,7 +171,7 @@ const initDb = () => {
     logo_url TEXT, primary_color TEXT DEFAULT '#6366f1', secondary_color TEXT DEFAULT '#06b6d4', api_key TEXT,
     plan_expires_at TEXT
     );
-    CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), google_id TEXT, email TEXT NOT NULL, name TEXT NOT NULL, avatar TEXT, password_hash TEXT, role TEXT DEFAULT 'user' CHECK(role IN ('superadmin','admin','manager','user')), created_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_login DATETIME, UNIQUE(company_id, email));
+    CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), google_id TEXT, email TEXT NOT NULL, name TEXT NOT NULL, avatar TEXT, password_hash TEXT, role TEXT DEFAULT 'user' CHECK(role IN ('superadmin','admin','manager','user','employee','vendedor')), created_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_login DATETIME, UNIQUE(company_id, email));
     CREATE TABLE IF NOT EXISTS employees (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), code TEXT NOT NULL, name TEXT NOT NULL, email TEXT NOT NULL, phone TEXT, position TEXT NOT NULL, department TEXT NOT NULL, salary REAL NOT NULL, hire_date TEXT NOT NULL, status TEXT DEFAULT 'active' CHECK(status IN ('active','inactive','vacation')), created_by TEXT REFERENCES users(id), created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(company_id, code), UNIQUE(company_id, email));
     CREATE TABLE IF NOT EXISTS attendance (id TEXT PRIMARY KEY, employee_id TEXT REFERENCES employees(id) ON DELETE CASCADE, date TEXT NOT NULL, check_in TEXT, check_out TEXT, status TEXT DEFAULT 'present' CHECK(status IN ('present','absent','late','vacation','holiday')), UNIQUE(employee_id, date));
     CREATE TABLE IF NOT EXISTS categories (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), name TEXT NOT NULL, description TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(company_id, name));
@@ -191,6 +192,7 @@ const initDb = () => {
     CREATE TABLE IF NOT EXISTS password_reset_tokens (id TEXT PRIMARY KEY, email TEXT NOT NULL, token TEXT NOT NULL, expires_at DATETIME NOT NULL, used INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
     CREATE TABLE IF NOT EXISTS api_keys (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), name TEXT NOT NULL, key TEXT NOT NULL UNIQUE, active INTEGER DEFAULT 1, last_used_at DATETIME, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
     CREATE TABLE IF NOT EXISTS invoice_templates (id TEXT PRIMARY KEY, company_id TEXT UNIQUE REFERENCES companies(id), header_text TEXT DEFAULT '', footer_text TEXT DEFAULT '', terms_text TEXT DEFAULT '', font_family TEXT DEFAULT 'Inter', font_size INTEGER DEFAULT 12, primary_color TEXT DEFAULT '#6366f1', show_logo INTEGER DEFAULT 1, show_nit INTEGER DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);
+    CREATE TABLE IF NOT EXISTS product_ingredients (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id), product_id TEXT REFERENCES products(id) ON DELETE CASCADE, ingredient_id TEXT REFERENCES products(id) ON DELETE CASCADE, grams_quantity REAL NOT NULL CHECK(grams_quantity > 0), created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
   `);
 
   // Seed / upsert default billing plans
@@ -202,9 +204,13 @@ const initDb = () => {
 
   // Migration: add columns to existing tables (safe if already exist)
   const migrations = [
+    `ALTER TABLE users ADD COLUMN phone TEXT DEFAULT ''`,
+    `ALTER TABLE users ADD COLUMN twofa_enabled INTEGER DEFAULT 0`,
     `ALTER TABLE users ADD COLUMN company_id TEXT REFERENCES companies(id)`,
     `ALTER TABLE employees ADD COLUMN company_id TEXT REFERENCES companies(id)`,
     `ALTER TABLE employees ADD COLUMN role TEXT DEFAULT 'editor'`,
+    `ALTER TABLE employees ADD COLUMN universidad TEXT DEFAULT ''`,
+    `ALTER TABLE employees ADD COLUMN ventas REAL DEFAULT 0`,
     `ALTER TABLE categories ADD COLUMN company_id TEXT REFERENCES companies(id)`,
     `ALTER TABLE products ADD COLUMN company_id TEXT REFERENCES companies(id)`,
     `ALTER TABLE customers ADD COLUMN company_id TEXT REFERENCES companies(id)`,
@@ -220,6 +226,21 @@ const initDb = () => {
     `ALTER TABLE companies ADD COLUMN secondary_color TEXT DEFAULT '#06b6d4'`,
     `ALTER TABLE companies ADD COLUMN api_key TEXT`,
     `ALTER TABLE companies ADD COLUMN plan_expires_at TEXT`,
+    `ALTER TABLE products ADD COLUMN unit TEXT DEFAULT 'unidad'`,
+    `UPDATE products SET unit = 'unidad' WHERE unit IS NULL`,
+    `ALTER TABLE orders ADD COLUMN ingredient_cost REAL DEFAULT 0`,
+    `ALTER TABLE orders ADD COLUMN cup_cost REAL DEFAULT 0`,
+    `ALTER TABLE orders ADD COLUMN labor_cost REAL DEFAULT 0`,
+    `ALTER TABLE orders ADD COLUMN transport_cost REAL DEFAULT 0`,
+    `ALTER TABLE orders ADD COLUMN daniel_profit REAL DEFAULT 0`,
+    `CREATE TABLE IF NOT EXISTS payroll (
+      id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id),
+      employee_id TEXT REFERENCES employees(id), amount REAL NOT NULL,
+      period TEXT NOT NULL, payment_date TEXT,
+      status TEXT DEFAULT 'pending',
+      notes TEXT, created_by TEXT REFERENCES users(id),
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
   ];
   for (const sql of migrations) {
     try { db.exec(sql); } catch (e) { /* column may already exist */ }
@@ -236,10 +257,10 @@ const initDb = () => {
     db.prepare('INSERT INTO companies (id, name, slug, plan, plan_expires_at) VALUES (?,?,?,?,?)').run(companyId, 'Synex Demo', 'synex', 'enterprise', null);
     console.log('Creating demo users...');
     const users = [
-      { google_id: 'demo_admin', email: 'admin@synex.com', name: 'Admin Synex', role: 'admin' },
-      { google_id: 'demo_manager', email: 'manager@synex.com', name: 'Gerente Sistema', role: 'manager' },
-      { google_id: 'demo_user', email: 'user@synex.com', name: 'Usuario Demo', role: 'user' },
-      { google_id: 'demo_ceo', email: 'ceo@synex.com', name: 'CEO Synex', role: 'superadmin' },
+      { google_id: 'demo_admin', email: 'admin@synexsoftware.xyz', name: 'Admin Synex', role: 'admin' },
+      { google_id: 'demo_manager', email: 'manager@synexsoftware.xyz', name: 'Gerente Sistema', role: 'manager' },
+      { google_id: 'demo_user', email: 'user@synexsoftware.xyz', name: 'Usuario Demo', role: 'user' },
+      { google_id: 'demo_ceo', email: 'ceo@synexsoftware.xyz', name: 'CEO Synex', role: 'superadmin' },
     ];
     const demoPass = require('crypto').pbkdf2Sync('admin123', 'demo', 1000, 64, 'sha512').toString('hex');
     const ins = db.prepare('INSERT OR IGNORE INTO users (id, company_id, google_id, email, name, avatar, role, password_hash) VALUES (?,?,?,?,?,?,?,?)');

@@ -31,10 +31,12 @@ async function doInit() {
         id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id),
         google_id TEXT, email TEXT NOT NULL, name TEXT NOT NULL, avatar TEXT,
         password_hash TEXT,
-        role TEXT DEFAULT 'user' CHECK(role IN ('superadmin','admin','manager','user')),
+        role TEXT DEFAULT 'user' CHECK(role IN ('superadmin','admin','manager','user','employee')),
         created_at TIMESTAMPTZ DEFAULT NOW(), last_login TIMESTAMPTZ,
         UNIQUE(company_id, email)
       );
+      ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+      ALTER TABLE users ADD CONSTRAINT users_role_check CHECK(role IN ('superadmin','admin','manager','user','employee'));
       CREATE TABLE IF NOT EXISTS employees (
         id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id),
         code TEXT NOT NULL, name TEXT NOT NULL, email TEXT NOT NULL, phone TEXT,
@@ -224,6 +226,16 @@ async function doInit() {
         created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW()
       )
     `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS product_ingredients (
+        id TEXT PRIMARY KEY,
+        company_id TEXT REFERENCES companies(id),
+        product_id TEXT REFERENCES products(id) ON DELETE CASCADE,
+        ingredient_id TEXT REFERENCES products(id) ON DELETE CASCADE,
+        grams_quantity REAL NOT NULL CHECK(grams_quantity > 0),
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
 
     // Seed / upsert default billing plans
     const epaycoSvc = require('./services/epayco');
@@ -272,6 +284,43 @@ async function doInit() {
     await pool.query(`
       ALTER TABLE products ADD COLUMN IF NOT EXISTS created_by TEXT
     `).catch(() => {});
+    await pool.query(`
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS unit TEXT DEFAULT 'unidad'
+    `).catch(() => {});
+    await pool.query(`
+      UPDATE products SET unit = 'unidad' WHERE unit IS NULL
+    `).catch(() => {});
+    await pool.query(`
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS ingredient_cost REAL DEFAULT 0
+    `).catch(() => {});
+    await pool.query(`
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS cup_cost REAL DEFAULT 0
+    `).catch(() => {});
+    await pool.query(`
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS labor_cost REAL DEFAULT 0
+    `).catch(() => {});
+    await pool.query(`
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS transport_cost REAL DEFAULT 0
+    `).catch(() => {});
+    await pool.query(`
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS daniel_profit REAL DEFAULT 0
+    `).catch(() => {});
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS payroll (
+        id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(id),
+        employee_id TEXT REFERENCES employees(id), amount REAL NOT NULL,
+        period TEXT NOT NULL, payment_date TEXT,
+        status TEXT DEFAULT 'pending' CHECK(status IN ('pending','paid','cancelled')),
+        notes TEXT, created_by TEXT REFERENCES users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `).catch(() => {});
+    await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT ''").catch(() => {});
+    await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS twofa_enabled INTEGER DEFAULT 0").catch(() => {});
+    await pool.query("ALTER TABLE employees ADD COLUMN IF NOT EXISTS universidad TEXT DEFAULT ''").catch(() => {});
+    await pool.query("ALTER TABLE employees ADD COLUMN IF NOT EXISTS ventas REAL DEFAULT 0").catch(() => {});
+    await pool.query("ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check").catch(() => {});
+    await pool.query("ALTER TABLE users ADD CONSTRAINT users_role_check CHECK(role IN ('superadmin','admin','manager','user','employee','vendedor'))").catch(() => {});
 
     const companyCount = (await pool.query('SELECT COUNT(*) as c FROM companies')).rows[0].c;
     if (parseInt(companyCount) === 0) {
@@ -282,10 +331,10 @@ async function doInit() {
       const demoPass = crypto.pbkdf2Sync('admin123', 'demo', 1000, 64, 'sha512').toString('hex');
       const passwordHash = 'demo:' + demoPass;
       const users = [
-        { google_id: 'demo_admin', email: 'admin@synex.com', name: 'Admin Synex', role: 'admin' },
-        { google_id: 'demo_manager', email: 'manager@synex.com', name: 'Gerente Sistema', role: 'manager' },
-        { google_id: 'demo_user', email: 'user@synex.com', name: 'Usuario Demo', role: 'user' },
-        { google_id: 'demo_ceo', email: 'ceo@synex.com', name: 'CEO Synex', role: 'superadmin' },
+        { google_id: 'demo_admin', email: 'admin@synexsoftware.xyz', name: 'Admin Synex', role: 'admin' },
+        { google_id: 'demo_manager', email: 'manager@synexsoftware.xyz', name: 'Gerente Sistema', role: 'manager' },
+        { google_id: 'demo_user', email: 'user@synexsoftware.xyz', name: 'Usuario Demo', role: 'user' },
+        { google_id: 'demo_ceo', email: 'ceo@synexsoftware.xyz', name: 'CEO Synex', role: 'superadmin' },
       ];
       for (const u of users) {
         await pool.query(q('INSERT INTO users (id, company_id, google_id, email, name, avatar, role, password_hash) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)',
@@ -328,33 +377,34 @@ const seedData = async (companyId) => {
   const dateStr = (d) => d.toISOString().split('T')[0];
   const daysAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return dateStr(d); };
 
-  const departamentos = ['TI', 'Ventas', 'Marketing', 'RRHH', 'Finanzas', 'Operaciones', 'Logística'];
-  const cargos = ['Analista Senior', 'Coordinador', 'Director', 'Asistente', 'Especialista', 'Jefe de Área', 'Supervisor'];
+  const departamentos = ['Producción', 'Atención al Cliente', 'Administración', 'Cocina', 'Delivery'];
+  const cargos = ['Maestro Granizadero', 'Cajero', 'Mesero', 'Repartidor', 'Admin', 'Ayudante de Cocina'];
   const nombres = ['Carlos Mendoza','María García','Juan Pérez','Ana López','Pedro Ramírez','Laura Torres',
     'Diego Castillo','Sofía Herrera','Andrés Vega','Valentina Ríos','Fernando Díaz','Camila Ortiz',
     'Roberto Navarro','Isabel Flores','Luis Morales','Gabriela Ruiz','Javier Santos','Patricia Vega',
     'Miguel Ángel','Daniela Cruz','Alejandro Rojas','Fernanda Medina','Sergio Aguilar','Mariana Campos'];
-  const cats = ['Electrónicos','Oficina','Ropa','Alimentos','Herramientas','Muebles','Juguetes','Deportes'];
+  const cats = ['Sabores Fruta', 'Sabores Especiales', 'Toppings', 'Tamaños', 'Bebidas', 'Snacks'];
   const prods = [
-    ['Laptop Pro X1','Laptop de alto rendimiento',2500,1800,50],
-    ['Monitor 27" 4K','Monitor profesional',800,550,30],
-    ['Teclado Mecánico RGB','Teclado gaming',150,90,100],
-    ['Mouse Inalámbrico','Mouse ergonómico',80,45,120],
-    ['Silla Ejecutiva','Silla ergonómica premium',1200,800,25],
-    ['Escritorio Eléctrico','Escritorio ajustable',900,600,15],
-    ['Café Premium 1kg','Café colombiano',35,20,200],
-    ['Agua Mineral 12pk','Agua embotellada',18,10,300],
-    ['Camisa Corporate','Camisa manga larga',55,30,80],
-    ['Zapatos Formal','Zapatos cuero',120,70,40],
-    ['Audífonos ANC','Audífonos cancelación ruido',300,180,45],
-    ['Tablet Pro','Tablet profesional',900,600,35],
-    ['Cargador Universal','Cargador multipuerto',45,25,150],
-    ['Hub USB-C','Hub 7 puertos',65,35,90],
-    ['Webcam 4K','Cámara profesional',200,120,60],
-    ['Router WiFi 6','Router alta velocidad',180,110,40]
+    ['Granizado de Fresa', 'Refrescante granizado sabor fresa natural', 8000, 2500, 200],
+    ['Granizado de Limón', 'Granizado de limón natural', 7000, 2000, 200],
+    ['Granizado de Mora', 'Granizado de mora con trozos de fruta', 9000, 3000, 150],
+    ['Granizado de Lulo', 'Granizado de lulo, sabor tradicional', 8000, 2500, 150],
+    ['Granizado de Mango', 'Granizado de mango con tajín', 8500, 2800, 180],
+    ['Granizado de Maracuyá', 'Granizado maracuyá dulce y ácido', 9000, 3000, 120],
+    ['Granizado de Uva', 'Granizado sabor uva morada', 7000, 2000, 200],
+    ['Granizado de Coco', 'Granizado de coco con leche condensada', 10000, 3500, 100],
+    ['Granizado Tres Leches', 'Granizado sabor tres leches canela', 11000, 4000, 80],
+    ['Granizado de Café', 'Granizado de café con crema', 12000, 4500, 100],
+    ['Topping Crema Batida', 'Crema batida para decorar', 2000, 500, 300],
+    ['Salsa de Caramelo', 'Topping de caramelo', 1500, 400, 300],
+    ['Salsa de Chocolate', 'Topping de chocolate', 1500, 400, 300],
+    ['Granizado XL', 'Granizado tamaño extra grande', 14000, 5000, 80],
+    ['Granizado Mediano', 'Granizado tamaño mediano', 6000, 1800, 250],
+    ['Leche Condensada Extra', 'Porción extra de leche condensada', 2000, 600, 200]
   ];
-  const clientNames = ['TechSolutions SA','Global Corp','Distribuidora XYZ','Innovatech','Servicios Plus',
-    'Comercial ABC','Industrias del Norte','Grupo Empresarial Sigma','Corporación Andina','MegaRed'];
+  const clientNames = ['Doña Rosa Tienda','Frutas La 14','Panadería El Buen Pan','Cafetería La Esquina',
+    'Tienda Don Pepe','Restaurante La Abuela','Papelería El Centro','Carnicería El Mayorista',
+    'MiniMarket Express','Verdulería La Fresca'];
   const ciudades = ['Bogotá','Medellín','Cali','Barranquilla','Cartagena','Pereira','Bucaramanga'];
 
   // Use existing IDs if data already seeded, otherwise create
@@ -366,7 +416,7 @@ const seedData = async (companyId) => {
       await pool.query(q(`INSERT INTO employees (id,company_id,code,name,email,phone,position,department,salary,hire_date,status,created_by)
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, [
         id, companyId, `EMP-${String(i + 1).padStart(3, '0')}`, n,
-        `${n.toLowerCase().replace(' ','.')}@synex.com`,
+        `${n.toLowerCase().replace(' ','.')}@synexsoftware.xyz`,
         `300${rand(1000000, 9999999)}`, pick(cargos), pick(departamentos),
         rand(2000000, 15000000), daysAgo(rand(30, 730)),
         pick(['active','active','active','active','active','inactive','vacation']), createdBy
@@ -478,7 +528,7 @@ const seedData = async (companyId) => {
     }
   }
 
-  const txCats = ['Ventas','Servicios','Nómina','Proveedores','Servicios Públicos','Arriendo','Equipos','Marketing','Transporte','Seguros','Impuestos','Consultoría'];
+  const txCats = ['Ventas Granizados','Nómina','Proveedores Fruta','Servicios','Arriendo','Empaque','Transporte','Marketing','Hielo','Mantenimiento'];
   for (let i = 0; i < 80; i++) {
     const isIncome = Math.random() > 0.4;
     const cat = pick(txCats);
@@ -508,7 +558,7 @@ const seedData = async (companyId) => {
     } catch (e) {}
   }
 
-  const projectNames = ['Implementación ERP','Migración Cloud','App Móvil Corporativa','Rediseño Web','Auditoría Seguridad','Campaña Marketing Digital','Optimización Procesos','Data Warehouse','E-commerce Platform','CRM Personalizado'];
+  const projectNames = ['Nuevo Local Centro','Festival de Granizados','Expansión Menú Salados','App de Pedidos','Rediseño Local','Campaña Redes Sociales','Curso de Granizados','Máquina de Hielo Nueva','Alianza con Frutas Frescas','Evento Degustación'];
   const projIds = [];
   for (let i = 0; i < projectNames.length; i++) {
     const id = uuidv4();

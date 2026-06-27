@@ -35,6 +35,7 @@ app.use('/api', (req, res, next) => {
   if (req.user) {
     req.companyId = req.user.company_id;
     req.isSuperAdmin = req.user.role === 'superadmin';
+    req.isEmployee = req.user.role === 'employee';
   }
   next();
 });
@@ -45,11 +46,13 @@ app.use('/api', async (req, res, next) => {
   if (req.path.startsWith('/billing/')) return next();
   if (req.path.startsWith('/company/branding')) return next();
   if (req.path.startsWith('/company/api-key')) return next();
+  if (req.path.startsWith('/company/seed')) return next();
   if (req.path.startsWith('/api-keys')) return next();
 
   try {
     const company = await db.get('SELECT plan, plan_expires_at, id FROM companies WHERE id = ?', req.companyId);
     if (!company) return next();
+    if (company.plan === 'demo') return next();
     const sub = await db.get("SELECT status FROM company_subscriptions WHERE company_id = ? AND status IN ('active','past_due') ORDER BY created_at DESC LIMIT 1", req.companyId);
     if (sub && sub.status === 'active') return next();
     if (company.plan_expires_at && new Date(company.plan_expires_at) > new Date()) return next();
@@ -67,7 +70,7 @@ app.get('/auth/me', ah(async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'No autenticado' });
   const company = await db.get('SELECT name, slug, logo_url, primary_color, secondary_color, plan, plan_expires_at FROM companies WHERE id = ?', req.user.company_id);
   const sub = await db.get("SELECT status FROM company_subscriptions WHERE company_id = ? AND status IN ('active','past_due','cancelled') ORDER BY created_at DESC LIMIT 1", req.user.company_id);
-  const subscriptionStatus = sub?.status || (company.plan === 'trial' ? 'trial' : 'none');
+  const subscriptionStatus = sub?.status || (company.plan === 'trial' ? 'trial' : (company.plan === 'demo' ? 'active' : (company.plan_expires_at ? 'none' : 'active')));
   const expired = company.plan_expires_at && new Date(company.plan_expires_at) < new Date();
   res.json({ ...req.user, company: { ...company, subscriptionStatus, expired } });
 }));
@@ -121,6 +124,9 @@ app.get('/auth/debug', ah(async (req, res) => {
   res.json({ backfill_affected: result?.changes ?? result?.rowCount ?? 0, users, columns: cols });
 }));
 
+// In-memory OTP store for 2FA
+const otpStore = new Map(); // email -> { code, expires, phone }
+
 app.post('/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -133,6 +139,13 @@ app.post('/auth/login', async (req, res) => {
     const hash = parts.slice(1).join(':');
     const inputHash = require('crypto').pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
     if (hash !== inputHash) return res.status(401).json({ error: 'Contraseña incorrecta' });
+
+    // Check if user has 2FA enabled
+    if (user.twofa_enabled && user.phone) {
+      const tempToken = jwt.sign({ email: user.email, step: '2fa' }, JWT_SECRET, { expiresIn: '5m' });
+      return res.json({ requires2fa: true, tempToken, phone: user.phone.replace(/.(?=.{4})/g, '*') });
+    }
+
     const token = jwt.sign({ email: user.email }, JWT_SECRET, { expiresIn: '1d' });
     const { password_hash, ...safeUser } = user;
     res.json({ user: safeUser, token });
@@ -141,6 +154,107 @@ app.post('/auth/login', async (req, res) => {
     res.status(500).json({ error: err.message || 'Error al iniciar sesión' });
   }
 });
+
+app.post('/auth/send-2fa', ah(async (req, res) => {
+  const { tempToken } = req.body;
+  if (!tempToken) return res.status(400).json({ error: 'Token requerido' });
+  let decoded;
+  try {
+    decoded = jwt.verify(tempToken, JWT_SECRET);
+    if (decoded.step !== '2fa') throw new Error('Token inválido');
+  } catch (e) {
+    return res.status(401).json({ error: 'Token inválido o expirado' });
+  }
+  const user = await db.get('SELECT * FROM users WHERE email = ?', decoded.email);
+  if (!user || !user.twofa_enabled || !user.phone) {
+    return res.status(400).json({ error: '2FA no está habilitado para este usuario' });
+  }
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const expires = Date.now() + 5 * 60 * 1000;
+  otpStore.set(decoded.email, { code, expires, phone: user.phone });
+  try {
+    const { send2FACode } = require('./services/sms');
+    await send2FACode(user.phone, code);
+    res.json({ success: true, message: 'Código enviado' });
+  } catch (e) {
+    res.status(500).json({ error: 'Error al enviar SMS. Verifica la configuración de Twilio.' });
+  }
+}));
+
+app.post('/auth/verify-2fa', ah(async (req, res) => {
+  const { tempToken, code } = req.body;
+  if (!tempToken || !code) return res.status(400).json({ error: 'Token y código requeridos' });
+  let decoded;
+  try {
+    decoded = jwt.verify(tempToken, JWT_SECRET);
+    if (decoded.step !== '2fa') throw new Error('Token inválido');
+  } catch (e) {
+    return res.status(401).json({ error: 'Token inválido o expirado' });
+  }
+  const stored = otpStore.get(decoded.email);
+  if (!stored) return res.status(400).json({ error: 'No hay código pendiente. Solicita uno nuevo.' });
+  if (Date.now() > stored.expires) {
+    otpStore.delete(decoded.email);
+    return res.status(400).json({ error: 'Código expirado. Solicita uno nuevo.' });
+  }
+  if (stored.code !== code) return res.status(401).json({ error: 'Código incorrecto' });
+  otpStore.delete(decoded.email);
+  const user = await db.get('SELECT * FROM users WHERE email = ?', decoded.email);
+  if (!user) return res.status(401).json({ error: 'Usuario no encontrado' });
+  const token = jwt.sign({ email: user.email }, JWT_SECRET, { expiresIn: '1d' });
+  const { password_hash, ...safeUser } = user;
+  res.json({ user: safeUser, token });
+}));
+
+// 2FA Settings endpoints
+app.get('/auth/2fa/status', ah(async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'No autenticado' });
+  res.json({
+    enabled: !!req.user.twofa_enabled,
+    phone: req.user.phone ? req.user.phone.replace(/.(?=.{4})/g, '*') : null
+  });
+}));
+
+app.post('/auth/2fa/enable', ah(async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'No autenticado' });
+  const { phone } = req.body;
+  if (!phone || !/^\+?\d{7,15}$/.test(phone)) {
+    return res.status(400).json({ error: 'Número de teléfono inválido. Debe ser formato internacional (+573001234567)' });
+  }
+  // Send test code
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const expires = Date.now() + 10 * 60 * 1000;
+  otpStore.set('setup_' + req.user.email, { code, expires, phone });
+  try {
+    const { send2FACode } = require('./services/sms');
+    await send2FACode(phone, code);
+    res.json({ success: true, message: 'Código de verificación enviado' });
+  } catch (e) {
+    res.status(500).json({ error: 'Error al enviar SMS. Verifica el número.' });
+  }
+}));
+
+app.post('/auth/2fa/confirm', ah(async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'No autenticado' });
+  const { code } = req.body;
+  if (!code) return res.status(400).json({ error: 'Código requerido' });
+  const stored = otpStore.get('setup_' + req.user.email);
+  if (!stored) return res.status(400).json({ error: 'No hay código pendiente. Solicita uno nuevo.' });
+  if (Date.now() > stored.expires) {
+    otpStore.delete('setup_' + req.user.email);
+    return res.status(400).json({ error: 'Código expirado. Solicita uno nuevo.' });
+  }
+  if (stored.code !== code) return res.status(401).json({ error: 'Código incorrecto' });
+  otpStore.delete('setup_' + req.user.email);
+  await db.run('UPDATE users SET phone = ?, twofa_enabled = 1 WHERE id = ?', stored.phone, req.user.id);
+  res.json({ success: true, message: '2FA activado correctamente' });
+}));
+
+app.post('/auth/2fa/disable', ah(async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'No autenticado' });
+  await db.run('UPDATE users SET twofa_enabled = 0 WHERE id = ?', req.user.id);
+  res.json({ success: true, message: '2FA desactivado' });
+}));
 
 // === Registration ===
 // === Password reset for legacy users (registered before password auth) ===
@@ -167,8 +281,8 @@ app.post('/auth/register', async (req, res) => {
     if (!companyName || !name || !email || !password) {
       return res.status(400).json({ error: 'Todos los campos son obligatorios' });
     }
-    if (!email.toLowerCase().endsWith('@synex.com')) {
-      return res.status(400).json({ error: 'Solo correos @synex.com pueden registrarse' });
+    if (!email.toLowerCase().endsWith('@synexsoftware.xyz')) {
+      return res.status(400).json({ error: 'Solo correos @synexsoftware.xyz pueden registrarse' });
     }
     const existingUser = await db.get('SELECT id FROM users WHERE email = ?', email);
     if (existingUser) return res.status(409).json({ error: 'El email ya está registrado' });
@@ -176,8 +290,8 @@ app.post('/auth/register', async (req, res) => {
     const companyId = require('uuid').v4();
     const slug = companyName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + Date.now().toString(36);
     const expires = new Date(); expires.setDate(expires.getDate() + 14);
-    await db.run('INSERT INTO companies (id, name, slug, plan, owner_id, plan_expires_at, logo_url, primary_color, secondary_color, phone, nit) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
-      companyId, companyName, slug, 'trial', null, expires.toISOString(), logoBase64 || null, primary_color || '#6366f1', secondary_color || '#06b6d4', phone || null, nit || null);
+    await db.run('INSERT INTO companies (id, name, slug, plan, owner_id, plan_expires_at, logo_url, primary_color, secondary_color) VALUES (?,?,?,?,?,?,?,?,?)',
+      companyId, companyName, slug, 'trial', null, expires.toISOString(), logoBase64 || null, primary_color || '#6366f1', secondary_color || '#06b6d4');
 
     const userId = require('uuid').v4();
     const crypto = require('crypto');
@@ -200,13 +314,11 @@ app.post('/auth/register', async (req, res) => {
 // === Super Admin routes ===
 app.get('/api/admin/companies', ah(async (req, res) => {
   if (!req.user || req.user.role !== 'superadmin') return res.status(403).json({ error: 'Acceso denegado' });
-  // Exclude the superadmin's own company (platform owner)
   const companies = await db.all(`
     SELECT c.*, (SELECT COUNT(*) FROM users WHERE company_id = c.id) as user_count
     FROM companies c 
-    WHERE c.id != ? 
     ORDER BY c.created_at DESC
-  `, req.companyId);
+  `);
   res.json(companies);
 }));
 
@@ -221,7 +333,11 @@ app.get('/api/admin/companies/:id', ah(async (req, res) => {
 app.put('/api/admin/companies/:id/plan', ah(async (req, res) => {
   if (!req.user || req.user.role !== 'superadmin') return res.status(403).json({ error: 'Acceso denegado' });
   const { plan } = req.body;
-  await db.run('UPDATE companies SET plan = ? WHERE id = ?', plan, req.params.id);
+  if (plan === 'enterprise' || plan === 'corporate' || plan === 'demo') {
+    await db.run('UPDATE companies SET plan = ?, plan_expires_at = NULL WHERE id = ?', plan, req.params.id);
+  } else {
+    await db.run('UPDATE companies SET plan = ? WHERE id = ?', plan, req.params.id);
+  }
   res.json({ success: true });
 }));
 
@@ -231,6 +347,49 @@ app.put('/api/admin/companies/:id', ah(async (req, res) => {
   if (!name) return res.status(400).json({ error: 'Nombre requerido' });
   await db.run('UPDATE companies SET name = ?, slug = COALESCE(?, slug) WHERE id = ?', name, slug || null, req.params.id);
   res.json({ success: true });
+}));
+
+app.get('/api/admin/companies/:id/users', ah(async (req, res) => {
+  if (!req.user || req.user.role !== 'superadmin') return res.status(403).json({ error: 'Acceso denegado' });
+  const users = await db.all('SELECT id, email, name, role, last_login FROM users WHERE company_id = ? ORDER BY created_at', req.params.id);
+  res.json(users);
+}));
+
+app.put('/api/admin/users/:id/email', ah(async (req, res) => {
+  if (!req.user || req.user.role !== 'superadmin') return res.status(403).json({ error: 'Acceso denegado' });
+  const { email } = req.body;
+  if (!email || !email.includes('@')) return res.status(400).json({ error: 'Email inválido' });
+  await db.run('UPDATE users SET email = ? WHERE id = ?', email, req.params.id);
+  res.json({ success: true });
+}));
+
+app.post('/api/admin/users/:id/reset-password', ah(async (req, res) => {
+  if (!req.user || req.user.role !== 'superadmin') return res.status(403).json({ error: 'Acceso denegado' });
+  const { password } = req.body;
+  if (!password || password.length < 4) return res.status(400).json({ error: 'Contraseña debe tener al menos 4 caracteres' });
+  const user = await db.get('SELECT id FROM users WHERE id = ?', req.params.id);
+  if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+  const crypto = require('crypto');
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+  await db.run('UPDATE users SET password_hash = ? WHERE id = ?', salt + ':' + hash, req.params.id);
+  res.json({ success: true, message: 'Contraseña actualizada' });
+}));
+
+app.get('/api/admin/users/search', ah(async (req, res) => {
+  if (!req.user || req.user.role !== 'superadmin') return res.status(403).json({ error: 'Acceso denegado' });
+  const { email } = req.query;
+  if (!email) return res.json([]);
+  const users = await db.all(`SELECT u.id, u.email, u.name, u.role, c.id as company_id, c.name as company_name FROM users u JOIN companies c ON c.id = u.company_id WHERE u.email LIKE ?`, `%${email}%`);
+  res.json(users);
+}));
+
+app.put('/api/admin/users/search/email', ah(async (req, res) => {
+  if (!req.user || req.user.role !== 'superadmin') return res.status(403).json({ error: 'Acceso denegado' });
+  const { currentEmail, newEmail } = req.body;
+  if (!currentEmail || !newEmail || !newEmail.includes('@')) return res.status(400).json({ error: 'Email inválido' });
+  await db.run('UPDATE users SET email = ? WHERE email = ?', newEmail, currentEmail);
+  res.json({ success: true, message: `Email cambiado de ${currentEmail} a ${newEmail}` });
 }));
 
 app.delete('/api/admin/companies/:id', ah(async (req, res) => {
@@ -249,6 +408,7 @@ app.delete('/api/admin/companies/:id', ah(async (req, res) => {
   await db.run('DELETE FROM transactions WHERE company_id = ?', companyId);
   await db.run('DELETE FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE company_id = ?)', companyId);
   await db.run('DELETE FROM orders WHERE company_id = ?', companyId);
+  await db.run('DELETE FROM product_ingredients WHERE company_id = ?', companyId);
   await db.run('DELETE FROM products WHERE company_id = ?', companyId);
   await db.run('DELETE FROM customers WHERE company_id = ?', companyId);
   await db.run('DELETE FROM categories WHERE company_id = ?', companyId);
@@ -262,13 +422,14 @@ app.delete('/api/admin/companies/:id', ah(async (req, res) => {
 
 app.get('/api/admin/alerts', ah(async (req, res) => {
   if (!req.user || req.user.role !== 'superadmin') return res.status(403).json({ error: 'Acceso denegado' });
+  const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
   const expiringSoon = await db.all(`
     SELECT id, name, slug, plan, plan_expires_at,
     (SELECT COUNT(*) FROM users WHERE company_id = c.id) as user_count
     FROM companies c WHERE plan_expires_at IS NOT NULL
-    AND datetime(plan_expires_at) <= datetime('now', '+7 days')
+    AND plan_expires_at <= ?
     AND plan != 'cancelled' ORDER BY plan_expires_at ASC
-  `);
+  `, sevenDaysFromNow);
   res.json({ expiringSoon });
 }));
 
@@ -314,7 +475,7 @@ app.post('/api/company/seed', ah(async (req, res) => {
 // === Recreate CEO Superadmin (emergency) ===
 app.post('/api/setup/create-ceo', ah(async (req, res) => {
   const { email, password, name } = req.body;
-  const targetEmail = email || 'ceo@synex.com';
+  const targetEmail = email || 'ceo@synexsoftware.xyz';
   const targetPassword = password || 'J032902112006';
   const targetName = name || 'CEO Synex';
 
@@ -356,6 +517,8 @@ app.use('/api/projects', require('./routes/projects'));
 app.use('/api/billing', require('./routes/billing'));
 app.use('/api/company', require('./routes/backup'));
 app.use('/api/company', require('./routes/invoice-templates'));
+app.use('/api/recipes', require('./routes/recipes'));
+app.use('/api/payroll', require('./routes/payroll'));
 app.use('/api', require('./routes/api'));
 
 app.post('/api/leads', ah(async (req, res) => {
@@ -386,7 +549,7 @@ app.post('/api/contact', ah(async (req, res) => {
   await db.run('INSERT INTO contacts (id, name, email, phone, message) VALUES (?,?,?,?,?)', id, name, email, phone || '', message);
   const { sendEmail } = require('./services/email');
   await sendEmail({
-    to: process.env.NOTIFY_EMAIL || 'Synex@synex.com',
+    to: process.env.NOTIFY_EMAIL || 'contacto@synexsoftware.xyz',
     subject: `Nuevo contacto: ${name}`,
     html: `<h2>Nuevo mensaje de contacto</h2><p><strong>Nombre:</strong> ${name}</p><p><strong>Email:</strong> ${email}</p><p><strong>Teléfono:</strong> ${phone || '—'}</p><p><strong>Mensaje:</strong></p><p>${message}</p>`
   });
@@ -500,5 +663,36 @@ if (!isVercel) {
     process.exit(1);
   });
 }
+
+// Deliwoufles seed ingredients
+app.post('/api/admin/seed/deliwoufles', ah(async (req, res) => {
+  const { company_id } = req.body;
+  if (!company_id) return res.status(400).json({ error: 'company_id required' });
+  const ingredients = [
+    { name: 'FRESAS', cost_price: 8000, unit: 'libra' },
+    { name: 'CREMA CHANTILLY', cost_price: 12000, unit: 'libra' },
+    { name: 'MANTEQUILLA', cost_price: 5000, unit: 'libra' },
+    { name: 'LECHE', cost_price: 4500, unit: 'litro' },
+    { name: 'LECHE CONDENSADA', cost_price: 7000, unit: 'unidad' },
+    { name: 'CHOCOLATE', cost_price: 12000, unit: 'kilo' },
+    { name: 'AREQUIPE', cost_price: 10000, unit: 'kilo' },
+    { name: 'MORA', cost_price: 7000, unit: 'libra' },
+    { name: 'SERVILLETA', cost_price: 200, unit: 'unidad' },
+    { name: 'CUCHARA', cost_price: 150, unit: 'unidad' },
+    { name: 'VASOS DARNEL', cost_price: 2500, unit: 'unidad' },
+    { name: 'PAPEL PELE', cost_price: 100, unit: 'unidad' },
+    { name: 'BOLSA', cost_price: 300, unit: 'unidad' },
+    { name: 'STICKER', cost_price: 500, unit: 'unidad' },
+  ];
+  const inserted = [];
+  for (const ing of ingredients) {
+    const id = require('uuid').v4();
+    const code = `ING-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+      await db.run(`INSERT INTO products (id,code,name,unit_price,cost_price,unit,stock,company_id,created_by)
+      VALUES (?,?,?,0,?,?,0,?,?)`, id, code, ing.name, ing.cost_price, ing.unit, company_id, req.user?.id || 'seed');
+    inserted.push(ing.name);
+  }
+  res.json({ success: true, message: `Creados ${inserted.length} ingredientes: ${inserted.join(', ')}` });
+}));
 
 module.exports = app;

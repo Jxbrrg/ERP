@@ -10,13 +10,29 @@ const fetchBranding = async (token) => {
   return null;
 };
 
+const setUserWithBranding = async (token, userData, set) => {
+  let user = userData;
+  if (user.company_id) {
+    const branding = await fetchBranding(token);
+    if (branding) user.company = { ...user.company, ...branding };
+  }
+  set({ user, loading: false, impersonating: !!localStorage.getItem('synex_admin_token') });
+  return user;
+};
+
 const useAuthStore = create((set) => ({
   user: null,
   loading: true,
   impersonating: false,
 
+  // 2FA state
+  requires2fa: false,
+  tempToken: null,
+  maskedPhone: null,
+
   setUser: (user) => set({ user, loading: false }),
   setLoading: (loading) => set({ loading }),
+  clear2fa: () => set({ requires2fa: false, tempToken: null, maskedPhone: null }),
 
   getToken: () => localStorage.getItem('synex_token'),
 
@@ -29,11 +45,7 @@ const useAuthStore = create((set) => ({
       });
       if (res.ok) {
         const user = await res.json();
-        if (user.company_id && !user.company) {
-          const branding = await fetchBranding(token);
-          if (branding) user.company = { ...user.company, ...branding };
-        }
-        set({ user, loading: false, impersonating: !!localStorage.getItem('synex_admin_token') });
+        await setUserWithBranding(token, user, set);
       } else {
         localStorage.removeItem('synex_token');
         set({ user: null, loading: false });
@@ -54,14 +66,45 @@ const useAuthStore = create((set) => ({
       throw new Error(err.error || 'Credenciales inválidas');
     }
     const data = await res.json();
-    localStorage.setItem('synex_token', data.token);
-    let user = data.user;
-    if (user.company_id) {
-      const branding = await fetchBranding(data.token);
-      if (branding) user.company = { ...user.company, ...branding };
+    if (data.requires2fa) {
+      set({ requires2fa: true, tempToken: data.tempToken, maskedPhone: data.phone });
+      return data;
     }
-    set({ user, loading: false, impersonating: false });
-    return user;
+    localStorage.setItem('synex_token', data.token);
+    return setUserWithBranding(data.token, data.user, set);
+  },
+
+  send2faCode: async () => {
+    const state = useAuthStore.getState();
+    if (!state.tempToken) throw new Error('No hay sesión pendiente');
+    const res = await fetch(__API_URL__ + '/auth/send-2fa', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tempToken: state.tempToken })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Error al enviar código');
+    }
+    return res.json();
+  },
+
+  verify2fa: async (code) => {
+    const state = useAuthStore.getState();
+    if (!state.tempToken) throw new Error('No hay sesión pendiente');
+    const res = await fetch(__API_URL__ + '/auth/verify-2fa', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tempToken: state.tempToken, code })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Código incorrecto');
+    }
+    const data = await res.json();
+    localStorage.setItem('synex_token', data.token);
+    set({ requires2fa: false, tempToken: null, maskedPhone: null });
+    return setUserWithBranding(data.token, data.user, set);
   },
 
   register: async (companyName, name, email, password, phone, nit, logoBase64, primary_color, secondary_color) => {
@@ -76,13 +119,7 @@ const useAuthStore = create((set) => ({
     }
     const data = await res.json();
     localStorage.setItem('synex_token', data.token);
-    let user = data.user;
-    if (user.company_id) {
-      const branding = await fetchBranding(data.token);
-      if (branding) user.company = { ...user.company, ...branding };
-    }
-    set({ user, loading: false });
-    return data;
+    return setUserWithBranding(data.token, data.user, set);
   },
 
   impersonate: async (companyId) => {
@@ -94,13 +131,7 @@ const useAuthStore = create((set) => ({
     const data = await res.json();
     localStorage.setItem('synex_admin_token', token);
     localStorage.setItem('synex_token', data.token);
-    let user = data.user;
-    if (user.company_id) {
-      const branding = await fetchBranding(data.token);
-      if (branding) user.company = { ...user.company, ...branding };
-    }
-    set({ user, loading: false, impersonating: true });
-    return user;
+    return setUserWithBranding(data.token, data.user, set);
   },
 
   stopImpersonating: async () => {
@@ -112,12 +143,8 @@ const useAuthStore = create((set) => ({
         headers: { Authorization: 'Bearer ' + adminToken }
       });
       if (res.ok) {
-        let user = await res.json();
-        if (user.company_id) {
-          const branding = await fetchBranding(adminToken);
-          if (branding) user.company = { ...user.company, ...branding };
-        }
-        set({ user, loading: false, impersonating: false });
+        const user = await res.json();
+        await setUserWithBranding(adminToken, user, set);
         return;
       }
     }
@@ -128,7 +155,7 @@ const useAuthStore = create((set) => ({
   logout: async () => {
     localStorage.removeItem('synex_token');
     localStorage.removeItem('synex_admin_token');
-    set({ user: null, impersonating: false });
+    set({ user: null, impersonating: false, requires2fa: false, tempToken: null, maskedPhone: null });
   }
 }));
 

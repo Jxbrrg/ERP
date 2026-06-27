@@ -1,13 +1,23 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Palette, Key, Copy, Check, RefreshCw, Image, Save, CreditCard, Calendar, XCircle, Loader2, Download, Upload, Trash2, Plus, ShoppingCart, FileText, Bell } from 'lucide-react';
+import { Palette, Key, Copy, Check, RefreshCw, Image, Save, CreditCard, Calendar, XCircle, Loader2, Download, Upload, Trash2, Plus, FileText, Bell, ShoppingCart, Shield, Smartphone } from 'lucide-react';
 import { apiFetch } from '../api/fetch';
 import useAuthStore from '../store/authStore';
 import { requestNotifyPermission, sendLocalNotification } from '../utils/notifications';
 
+const MP_LINKS = {
+  personal: 'https://mpago.la/2kgroZ9',
+  starter: 'https://mpago.la/2PCDCps',
+  micro: 'https://mpago.la/1WSPccD',
+  business: 'https://mpago.la/1E4HCaC',
+  growth: 'https://mpago.la/2Fxt5kd',
+  enterprise: 'https://mpago.la/2p6LPaU',
+  corporate: 'https://mpago.la/1yfydTY',
+};
+
 export default function Settings() {
   const { user } = useAuthStore();
-  const [epaycoReady, setEpaycoReady] = useState(false);
+
   const [logoUrl, setLogoUrl] = useState('');
   const [primaryColor, setPrimaryColor] = useState('#6366f1');
   const [secondaryColor, setSecondaryColor] = useState('#06b6d4');
@@ -21,6 +31,69 @@ export default function Settings() {
   const [backupLoading, setBackupLoading] = useState(false);
   const [restoreLoading, setRestoreLoading] = useState(false);
   const [backupStatus, setBackupStatus] = useState(null);
+
+  // 2FA state
+  const [twofaStatus, setTwofaStatus] = useState(null);
+  const [twofaPhone, setTwofaPhone] = useState('');
+  const [twofaCode, setTwofaCode] = useState('');
+  const [twofaStep, setTwofaStep] = useState('idle');
+  const [twofaError, setTwofaError] = useState('');
+  const [twofaLoading, setTwofaLoading] = useState(false);
+
+  useEffect(() => {
+    apiFetch(__API_URL__ + '/auth/2fa/status')
+      .then(r => r.json()).then(d => setTwofaStatus(d)).catch(() => {});
+  }, []);
+
+  const handleEnable2fa = async () => {
+    if (!twofaPhone || !/^\+?\d{7,15}$/.test(twofaPhone)) {
+      setTwofaError('Número inválido. Formato: +573001234567');
+      return;
+    }
+    setTwofaLoading(true);
+    setTwofaError('');
+    try {
+      const r = await apiFetch(__API_URL__ + '/auth/2fa/enable', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: twofaPhone })
+      });
+      const d = await r.json();
+      if (!r.ok) { setTwofaError(d.error); return; }
+      setTwofaStep('verifying');
+    } catch { setTwofaError('Error de conexión'); }
+    setTwofaLoading(false);
+  };
+
+  const handleConfirm2fa = async () => {
+    if (!twofaCode || twofaCode.length !== 6) return;
+    setTwofaLoading(true);
+    setTwofaError('');
+    try {
+      const r = await apiFetch(__API_URL__ + '/auth/2fa/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: twofaCode })
+      });
+      const d = await r.json();
+      if (!r.ok) { setTwofaError(d.error); return; }
+      setTwofaStatus({ enabled: true, phone: twofaPhone.replace(/.(?=.{4})/g, '*') });
+      setTwofaStep('done');
+      setTimeout(() => setTwofaStep('idle'), 2000);
+    } catch { setTwofaError('Error de conexión'); }
+    setTwofaLoading(false);
+  };
+
+  const handleDisable2fa = async () => {
+    if (!confirm('¿Desactivar verificación en dos pasos?')) return;
+    setTwofaLoading(true);
+    try {
+      await apiFetch(__API_URL__ + '/auth/2fa/disable', { method: 'POST' });
+      setTwofaStatus({ enabled: false, phone: null });
+    } catch { setTwofaError('Error al desactivar'); }
+    setTwofaLoading(false);
+  };
+
   const [invoiceTpl, setInvoiceTpl] = useState(null);
   const [invoiceSaving, setInvoiceSaving] = useState(false);
   const [invoiceSaved, setInvoiceSaved] = useState(false);
@@ -30,15 +103,6 @@ export default function Settings() {
   const [payments, setPayments] = useState([]);
   const [subLoading, setSubLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
-
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://checkout.epayco.co/checkout.js';
-    script.async = true;
-    script.onload = () => setEpaycoReady(true);
-    document.body.appendChild(script);
-    return () => { document.body.removeChild(script); };
-  }, []);
 
   useEffect(() => {
     apiFetch(__API_URL__ + '/api/company/branding')
@@ -79,27 +143,6 @@ export default function Settings() {
     await apiFetch(__API_URL__ + '/api/billing/company/subscription/cancel', { method: 'PUT' });
     setSubscription({ ...subscription, status: 'cancelled' });
     setCancelling(false);
-  };
-
-  const openCheckout = (plan) => {
-    if (!window.ePayco) return;
-    const handler = window.ePayco.checkout.configure({
-      key: '5f0d2827af215bfe4fcc5ebe29274a3f',
-      test: true,
-    });
-    handler.open({
-      amount: Number(plan.price),
-      tax: '0.00',
-      tax_ico: '0.00',
-      tax_base: Number(plan.price),
-      name: plan.name,
-      description: plan.name,
-      currency: 'cop',
-      country: 'CO',
-      external: 'false',
-      response: window.location.origin + '/settings?payment=success',
-      confirmation: window.location.origin + '/api/billing/epayco-checkout?company_id=' + (user?.companyId || user?.company?.id) + '&plan_code=' + plan.code,
-    });
   };
 
   const saveBranding = async () => {
@@ -403,7 +446,7 @@ export default function Settings() {
           <div className="space-y-4">
             <p className="text-sm text-slate-500">Elige un plan para empezar a facturar:</p>
             <div className="grid gap-4 sm:grid-cols-3">
-              {plans.map((p, i) => (
+              {plans.filter(p => p.code !== 'demo').map((p, i) => (
                 <div key={i} className="rounded-xl border border-slate-200 p-4 dark:border-slate-700 flex flex-col">
                   <h3 className="font-semibold text-slate-800 dark:text-white">{p.name}</h3>
                   <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">${Number(p.price).toLocaleString('es-CO')}<span className="text-sm font-normal text-slate-400">/mes</span></p>
@@ -413,25 +456,21 @@ export default function Settings() {
                       <li key={j} className="text-xs text-slate-500 flex items-center gap-1"><Check className="h-3 w-3 text-emerald-400 shrink-0" />{f}</li>
                     ))}
                   </ul>
-                  {Number(p.price) > 200000 ? (
-                    <a href="https://wa.me/573332361814?text=Quiero%20el%20plan%20${encodeURIComponent(p.name)}"
-                      target="_blank" rel="noopener noreferrer"
-                      className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800 transition-all">
-                      Contactar por WhatsApp
-                    </a>
-                  ) : (
-                  <button onClick={() => openCheckout(p)}
-                    disabled={!epaycoReady}
-                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50">
-                    <ShoppingCart className="h-4 w-4" /> Contratar Plan
-                  </button>
-                  )}
+                    <button onClick={async () => {
+                      try {
+                        const r = await apiFetch(__API_URL__ + '/api/billing/mp-checkout', {
+                          method: 'POST', headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ planCode: p.code })
+                        });
+                        const data = await r.json();
+                        if (data.url) window.open(data.url, '_blank');
+                      } catch {}
+                    }} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 transition-all">
+                      Pagar con Mercado Pago
+                    </button>
                 </div>
               ))}
             </div>
-            {!epaycoReady && (
-              <p className="text-xs text-slate-400 animate-pulse">Cargando pasarela de pago...</p>
-            )}
           </div>
         )}
 
@@ -552,6 +591,109 @@ export default function Settings() {
               </button>
               {invoiceSaved && <span className="text-sm text-emerald-500">✓ Guardado</span>}
             </div>
+          </div>
+        )}
+      </motion.div>
+
+      {/* Demo Data */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
+        className="glass rounded-2xl p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="rounded-xl bg-emerald-50 p-2.5 dark:bg-emerald-500/10">
+            <ShoppingCart className="h-5 w-5 text-emerald-500" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-slate-800 dark:text-white">Demo — Datos de prueba</h2>
+            <p className="text-xs text-slate-400">Genera datos ficticios para demostraciones con clientes</p>
+          </div>
+        </div>
+        <button onClick={async () => {
+          setBackupStatus('generating');
+          try {
+            const r = await apiFetch(__API_URL__ + '/api/company/seed', { method: 'POST' });
+            if (!r.ok) { setBackupStatus('error'); return; }
+            setBackupStatus('done');
+            setTimeout(() => setBackupStatus(null), 3000);
+          } catch { setBackupStatus('error'); }
+        }} className="flex items-center gap-2 rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-600 transition-colors">
+          <RefreshCw className={`h-4 w-4 ${backupStatus === 'generating' ? 'animate-spin' : ''}`} />
+          {backupStatus === 'generating' ? 'Generando...' : 'Generar datos de prueba'}
+        </button>
+        {backupStatus === 'done' && <span className="ml-3 inline-flex items-center text-sm text-emerald-500">✓ Datos generados. Recarga la página.</span>}
+        {backupStatus === 'error' && <span className="ml-3 inline-flex items-center text-sm text-rose-500">✗ Error al generar</span>}
+      </motion.div>
+
+      {/* 2FA / Verificación en dos pasos */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
+        className="glass rounded-2xl p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="rounded-xl bg-amber-50 p-2.5 dark:bg-amber-500/10">
+            <Shield className="h-5 w-5 text-amber-500" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-slate-800 dark:text-white">Verificación en dos pasos (2FA)</h2>
+            <p className="text-xs text-slate-400">Protege tu cuenta con un código SMS al iniciar sesión</p>
+          </div>
+        </div>
+
+        {twofaStep === 'done' && (
+          <div className="rounded-xl bg-emerald-500/10 px-4 py-3 text-sm text-emerald-600 dark:text-emerald-400 mb-4">
+            ✓ 2FA activado correctamente
+          </div>
+        )}
+
+        {twofaError && (
+          <div className="rounded-xl bg-rose-500/10 px-4 py-3 text-sm text-rose-600 dark:text-rose-400 mb-4">
+            {twofaError}
+          </div>
+        )}
+
+        {twofaStatus?.enabled ? (
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+              <Smartphone className="h-4 w-4 text-emerald-500" />
+              <span>Activado — {twofaStatus.phone}</span>
+            </div>
+            <button onClick={handleDisable2fa} disabled={twofaLoading}
+              className="rounded-xl border border-rose-200 px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-400 dark:hover:bg-rose-900/20 transition-colors disabled:opacity-50">
+              {twofaLoading ? 'Desactivando...' : 'Desactivar 2FA'}
+            </button>
+          </div>
+        ) : twofaStep === 'verifying' ? (
+          <div className="space-y-4 max-w-sm">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Ingresa el código de 6 dígitos enviado a <span className="font-medium text-indigo-400">{twofaPhone}</span>
+            </p>
+            <div className="flex gap-2">
+              <input type="text" inputMode="numeric" maxLength={6} value={twofaCode}
+                onChange={e => setTwofaCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="000000"
+                className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-center text-lg font-bold tracking-widest text-slate-800 outline-none focus:border-indigo-400 dark:border-slate-600 dark:bg-slate-800 dark:text-white" />
+              <button onClick={handleConfirm2fa} disabled={twofaLoading || twofaCode.length !== 6}
+                className="rounded-xl bg-indigo-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-600 transition-colors disabled:opacity-50">
+                {twofaLoading ? '...' : 'Verificar'}
+              </button>
+            </div>
+            <button onClick={() => setTwofaStep('entering-phone')} className="text-xs text-indigo-400 hover:text-indigo-300">
+              Cambiar número
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4 max-w-sm">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Activa la autenticación de dos factores. Recibirás un código SMS cada vez que inicies sesión.
+            </p>
+            <div className="flex gap-2">
+              <input type="text" value={twofaPhone}
+                onChange={e => setTwofaPhone(e.target.value)}
+                placeholder="+573001234567"
+                className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-indigo-400 dark:border-slate-600 dark:bg-slate-800 dark:text-white" />
+              <button onClick={handleEnable2fa} disabled={twofaLoading || !twofaPhone}
+                className="rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-amber-600 transition-colors disabled:opacity-50">
+                {twofaLoading ? 'Enviando...' : 'Activar'}
+              </button>
+            </div>
+            <p className="text-xs text-slate-400">Formato internacional: +57 seguido del número</p>
           </div>
         )}
       </motion.div>

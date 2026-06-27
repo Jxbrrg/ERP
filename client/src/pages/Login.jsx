@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Lock } from 'lucide-react';
+import { Mail, Lock, Shield, Smartphone } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { apiFetch } from '../api/fetch';
 
 export default function Login() {
-  const { login, setUser } = useAuthStore();
+  const { login, verify2fa, send2faCode, setUser, requires2fa, maskedPhone, clear2fa } = useAuthStore();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
@@ -21,6 +21,11 @@ export default function Login() {
   const [fpSent, setFpSent] = useState(false);
   const [fpLoading, setFpLoading] = useState(false);
   const [fpError, setFpError] = useState('');
+  const [code, setCode] = useState(['', '', '', '', '', '']);
+  const [codeError, setCodeError] = useState('');
+  const [codeLoading, setCodeLoading] = useState(false);
+  const [codeSent, setCodeSent] = useState(false);
+  const codeRefs = [useRef(), useRef(), useRef(), useRef(), useRef(), useRef()];
 
   const handleSetPassword = async (e) => {
     e.preventDefault();
@@ -49,17 +54,62 @@ export default function Login() {
     }
   }, []);
 
+  useEffect(() => {
+    if (requires2fa && !codeSent) {
+      setLoading(false);
+      send2faCode().then(() => setCodeSent(true)).catch(e => setError(e.message));
+    }
+  }, [requires2fa]);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     try {
-      await login(email, password);
-      navigate('/dashboard');
+      const result = await login(email, password);
+      if (!result || !result.requires2fa) navigate('/dashboard');
     } catch (err) {
       setError(err.message);
+      setLoading(false);
     }
-    setLoading(false);
+  };
+
+  const handleCodeChange = (index, value) => {
+    if (value && !/^\d$/.test(value)) return;
+    const newCode = [...code];
+    newCode[index] = value;
+    setCode(newCode);
+    setCodeError('');
+    if (value && index < 5) codeRefs[index + 1].current?.focus();
+    if (value && index === 5) handleVerify2fa(newCode.join(''));
+  };
+
+  const handleVerify2fa = async (fullCode) => {
+    const c = fullCode || code.join('');
+    if (c.length !== 6) return;
+    setCodeLoading(true);
+    setCodeError('');
+    try {
+      await verify2fa(c);
+      navigate('/dashboard');
+    } catch (err) {
+      setCodeError(err.message);
+      setCode(['', '', '', '', '', '']);
+      codeRefs[0].current?.focus();
+    }
+    setCodeLoading(false);
+  };
+
+  const handleResendCode = async () => {
+    setCodeSent(false);
+    setCode(['', '', '', '', '', '']);
+    setCodeError('');
+    try {
+      await send2faCode();
+      setCodeSent(true);
+    } catch (e) {
+      setCodeError(e.message);
+    }
   };
 
   const handleForgot = async (e) => {
@@ -141,6 +191,66 @@ export default function Login() {
               </p>
             </div>
 
+            {requires2fa ? (
+              <>
+                <div className="mb-6 text-center">
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-500/20">
+                    <Smartphone className="h-8 w-8 text-indigo-400" />
+                  </div>
+                  <h2 className="text-xl font-bold text-slate-800 dark:text-white">Verificación en dos pasos</h2>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    Ingresa el código de 6 dígitos enviado a<br />
+                    <span className="font-medium text-indigo-400">{maskedPhone}</span>
+                  </p>
+                </div>
+
+                {codeError && (
+                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+                    className="mb-4 rounded-xl bg-rose-500/10 px-4 py-3 text-center text-sm text-rose-600 dark:text-rose-400">
+                    {codeError}
+                  </motion.div>
+                )}
+
+                <div className="mb-6 flex justify-center gap-2">
+                  {code.map((digit, i) => (
+                    <input
+                      key={i}
+                      ref={codeRefs[i]}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={digit}
+                      onChange={e => handleCodeChange(i, e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Backspace' && !digit && i > 0) codeRefs[i - 1].current?.focus();
+                      }}
+                      className="h-14 w-12 rounded-xl border border-slate-200 bg-white text-center text-xl font-bold text-slate-800 outline-none transition-all focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                    />
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => handleVerify2fa()}
+                  disabled={codeLoading || code.join('').length !== 6}
+                  className="gradient-primary w-full rounded-xl py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-xl hover:shadow-indigo-500/30 active:scale-[0.98] disabled:opacity-50"
+                >
+                  {codeLoading ? 'Verificando...' : 'Verificar código'}
+                </button>
+
+                <div className="mt-4 text-center">
+                  <button onClick={handleResendCode} disabled={codeLoading}
+                    className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
+                    Reenviar código
+                  </button>
+                  <span className="mx-2 text-slate-500">·</span>
+                  <button onClick={() => { clear2fa(); setError(''); }}
+                    className="text-xs text-slate-400 hover:text-slate-300 transition-colors">
+                    Volver al inicio
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
             {error && (
               <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
                 className="mb-4 rounded-xl bg-rose-500/10 px-4 py-3 text-center text-sm text-rose-600 dark:text-rose-400">
@@ -157,7 +267,7 @@ export default function Login() {
                     type="email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    placeholder="tu@synex.com"
+                    placeholder="tu@synexsoftware.xyz"
                     className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none transition-all focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:focus:border-indigo-500"
                     required
                   />
@@ -220,6 +330,8 @@ export default function Login() {
                 <Link to="/register" className="font-medium text-indigo-500 hover:text-indigo-400">Crear cuenta</Link>
               </p>
               <p className="mt-4 text-center text-[10px] text-slate-500/60">&copy; {new Date().getFullYear()} Synex by Jhossuar</p>
+              </>
+            )}
             </div>
 
             {showForgot && (
